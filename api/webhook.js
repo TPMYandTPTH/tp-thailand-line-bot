@@ -20,114 +20,477 @@ function verifySignature(body, signature) {
   return hash === signature;
 }
 
-// --- Recruitment Bot Logic ---
+// --- Quick Reply Buttons (appear at bottom of chat) ---
+const mainMenuQuickReply = {
+  items: [
+    {
+      type: "action",
+      action: { type: "message", label: "📋 Open Positions", text: "View open positions" },
+    },
+    {
+      type: "action",
+      action: { type: "message", label: "📝 Apply Now", text: "Apply now" },
+    },
+    {
+      type: "action",
+      action: { type: "message", label: "❓ FAQ", text: "Ask a question" },
+    },
+    {
+      type: "action",
+      action: { type: "message", label: "📍 Locations", text: "Office locations" },
+    },
+    {
+      type: "action",
+      action: { type: "message", label: "🎁 Benefits", text: "Benefits" },
+    },
+  ],
+};
+
+const backToMenuQuickReply = {
+  items: [
+    {
+      type: "action",
+      action: { type: "message", label: "🏠 Main Menu", text: "Hi" },
+    },
+    {
+      type: "action",
+      action: { type: "message", label: "📝 Apply Now", text: "Apply now" },
+    },
+  ],
+};
+
+// --- Flex Message Builders ---
+
+function welcomeFlex() {
+  return {
+    type: "flex",
+    altText: "Welcome to TP Thailand Recruitment",
+    contents: {
+      type: "bubble",
+      size: "mega",
+      header: {
+        type: "box",
+        layout: "vertical",
+        contents: [
+          {
+            type: "text",
+            text: "🇹🇭 TP Thailand",
+            weight: "bold",
+            size: "xl",
+            color: "#4B4C6A",
+          },
+          {
+            type: "text",
+            text: "Recruitment Bot",
+            size: "md",
+            color: "#888888",
+            margin: "xs",
+          },
+        ],
+        paddingAll: "20px",
+        backgroundColor: "#F8F8FF",
+      },
+      body: {
+        type: "box",
+        layout: "vertical",
+        contents: [
+          {
+            type: "text",
+            text: "สวัสดีค่ะ! Welcome!",
+            weight: "bold",
+            size: "lg",
+            margin: "md",
+          },
+          {
+            type: "text",
+            text: "ยินดีต้อนรับสู่ TP Thailand\nHow can I help you?",
+            size: "sm",
+            color: "#666666",
+            margin: "md",
+            wrap: true,
+          },
+          { type: "separator", margin: "xl" },
+          {
+            type: "text",
+            text: "เลือกเมนูด้านล่าง / Choose below:",
+            size: "sm",
+            color: "#888888",
+            margin: "lg",
+          },
+        ],
+        paddingAll: "20px",
+      },
+      footer: {
+        type: "box",
+        layout: "vertical",
+        spacing: "sm",
+        contents: [
+          {
+            type: "button",
+            style: "primary",
+            color: "#4B4C6A",
+            action: { type: "message", label: "📋 ดูตำแหน่งงาน / View Positions", text: "View open positions" },
+          },
+          {
+            type: "button",
+            style: "primary",
+            color: "#FF0082",
+            action: { type: "message", label: "📝 สมัครงาน / Apply Now", text: "Apply now" },
+          },
+          {
+            type: "button",
+            style: "secondary",
+            action: { type: "message", label: "❓ FAQ / คำถามที่พบบ่อย", text: "Ask a question" },
+          },
+          {
+            type: "button",
+            style: "secondary",
+            action: { type: "message", label: "📍 สถานที่ / Locations", text: "Office locations" },
+          },
+          {
+            type: "button",
+            style: "secondary",
+            action: { type: "message", label: "🎁 สวัสดิการ / Benefits", text: "Benefits" },
+          },
+        ],
+        paddingAll: "15px",
+      },
+    },
+    quickReply: mainMenuQuickReply,
+  };
+}
+
+function positionsFlex() {
+  return {
+    type: "flex",
+    altText: "Open Positions at TP Thailand",
+    contents: {
+      type: "carousel",
+      contents: [
+        jobCard("Guest Experience Specialist", "Thai, English", "Bangkok", "Deliver exceptional customer support for a global tech brand."),
+        jobCard("Customer Service Representative", "Thai, English", "Bangkok", "Handle inbound inquiries and provide world-class service."),
+        jobCard("Content Moderator", "Thai", "Bangkok", "Review and moderate content to keep online platforms safe."),
+      ],
+    },
+    quickReply: backToMenuQuickReply,
+  };
+}
+
+function jobCard(title, languages, location, description) {
+  return {
+    type: "bubble",
+    size: "kilo",
+    header: {
+      type: "box",
+      layout: "vertical",
+      contents: [
+        { type: "text", text: title, weight: "bold", size: "md", color: "#FFFFFF", wrap: true },
+      ],
+      backgroundColor: "#4B4C6A",
+      paddingAll: "15px",
+    },
+    body: {
+      type: "box",
+      layout: "vertical",
+      contents: [
+        { type: "text", text: description, size: "sm", color: "#666666", wrap: true },
+        { type: "separator", margin: "lg" },
+        {
+          type: "box",
+          layout: "vertical",
+          margin: "lg",
+          spacing: "sm",
+          contents: [
+            {
+              type: "box",
+              layout: "horizontal",
+              contents: [
+                { type: "text", text: "🌐", size: "sm", flex: 0 },
+                { type: "text", text: languages, size: "sm", color: "#444444", margin: "md" },
+              ],
+            },
+            {
+              type: "box",
+              layout: "horizontal",
+              contents: [
+                { type: "text", text: "📍", size: "sm", flex: 0 },
+                { type: "text", text: location, size: "sm", color: "#444444", margin: "md" },
+              ],
+            },
+          ],
+        },
+      ],
+      paddingAll: "15px",
+    },
+    footer: {
+      type: "box",
+      layout: "vertical",
+      contents: [
+        {
+          type: "button",
+          style: "primary",
+          color: "#FF0082",
+          action: { type: "message", label: "สมัครเลย / Apply", text: "Apply now" },
+        },
+      ],
+      paddingAll: "10px",
+    },
+  };
+}
+
+function applyFlex() {
+  return {
+    type: "flex",
+    altText: "Apply Now - TP Thailand",
+    contents: {
+      type: "bubble",
+      size: "mega",
+      header: {
+        type: "box",
+        layout: "vertical",
+        contents: [
+          { type: "text", text: "📝 สมัครงาน / Apply Now", weight: "bold", size: "lg", color: "#FFFFFF" },
+        ],
+        backgroundColor: "#FF0082",
+        paddingAll: "20px",
+      },
+      body: {
+        type: "box",
+        layout: "vertical",
+        contents: [
+          {
+            type: "text",
+            text: "Apply through our careers page or send us your info via this chat!",
+            size: "sm",
+            color: "#666666",
+            wrap: true,
+          },
+          { type: "separator", margin: "lg" },
+          {
+            type: "text",
+            text: "กรุณาส่งข้อมูลต่อไปนี้:",
+            weight: "bold",
+            size: "sm",
+            margin: "lg",
+          },
+          {
+            type: "text",
+            text: "Send us the following info:",
+            size: "sm",
+            color: "#888888",
+            margin: "xs",
+          },
+          {
+            type: "box",
+            layout: "vertical",
+            margin: "lg",
+            spacing: "sm",
+            contents: [
+              { type: "text", text: "1. ชื่อ-นามสกุล / Full Name", size: "sm", color: "#444444" },
+              { type: "text", text: "2. เบอร์โทร / Phone Number", size: "sm", color: "#444444" },
+              { type: "text", text: "3. อีเมล / Email", size: "sm", color: "#444444" },
+              { type: "text", text: "4. ตำแหน่งที่สนใจ / Position", size: "sm", color: "#444444" },
+              { type: "text", text: "5. ภาษาที่พูดได้ / Languages", size: "sm", color: "#444444" },
+            ],
+          },
+        ],
+        paddingAll: "20px",
+      },
+      footer: {
+        type: "box",
+        layout: "vertical",
+        contents: [
+          {
+            type: "button",
+            style: "primary",
+            color: "#4B4C6A",
+            action: { type: "uri", label: "🔗 Apply on Website", uri: "https://careers.tp.com" },
+          },
+        ],
+        paddingAll: "10px",
+      },
+    },
+    quickReply: backToMenuQuickReply,
+  };
+}
+
+function faqFlex() {
+  return {
+    type: "flex",
+    altText: "FAQ - TP Thailand",
+    contents: {
+      type: "bubble",
+      size: "mega",
+      header: {
+        type: "box",
+        layout: "vertical",
+        contents: [
+          { type: "text", text: "❓ คำถามที่พบบ่อย / FAQ", weight: "bold", size: "lg", color: "#FFFFFF" },
+        ],
+        backgroundColor: "#4B4C6A",
+        paddingAll: "20px",
+      },
+      body: {
+        type: "box",
+        layout: "vertical",
+        spacing: "lg",
+        contents: [
+          faqItem("TP คืออะไร? / What is TP?", "TP เป็นผู้นำระดับโลกด้าน Digital Business Services มีพนักงานกว่า 500,000 คนใน 100+ ประเทศ"),
+          { type: "separator" },
+          faqItem("ต้องมีประสบการณ์ไหม?", "ไม่จำเป็น! เรามีการฝึกอบรมให้ทุกตำแหน่ง\nNo experience needed! Full training provided."),
+          { type: "separator" },
+          faqItem("ทำงานที่ไหน? / Where?", "กรุงเทพฯ, ประเทศไทย\nBangkok, Thailand"),
+        ],
+        paddingAll: "20px",
+      },
+    },
+    quickReply: backToMenuQuickReply,
+  };
+}
+
+function faqItem(question, answer) {
+  return {
+    type: "box",
+    layout: "vertical",
+    contents: [
+      { type: "text", text: question, weight: "bold", size: "sm", color: "#4B4C6A", wrap: true },
+      { type: "text", text: answer, size: "sm", color: "#666666", margin: "sm", wrap: true },
+    ],
+  };
+}
+
+function locationsFlex() {
+  return {
+    type: "flex",
+    altText: "TP Thailand Office Locations",
+    contents: {
+      type: "bubble",
+      size: "mega",
+      header: {
+        type: "box",
+        layout: "vertical",
+        contents: [
+          { type: "text", text: "📍 สถานที่ทำงาน", weight: "bold", size: "lg", color: "#FFFFFF" },
+          { type: "text", text: "Office Locations", size: "md", color: "#FFFFFFCC" },
+        ],
+        backgroundColor: "#4B4C6A",
+        paddingAll: "20px",
+      },
+      body: {
+        type: "box",
+        layout: "vertical",
+        contents: [
+          { type: "text", text: "🏢 TP Thailand - Bangkok", weight: "bold", size: "md" },
+          { type: "text", text: "กรุงเทพมหานคร, ประเทศไทย", size: "sm", color: "#888888", margin: "sm" },
+          { type: "separator", margin: "xl" },
+          {
+            type: "box",
+            layout: "vertical",
+            margin: "lg",
+            spacing: "sm",
+            contents: [
+              { type: "text", text: "🚇 ใกล้ BTS / Near BTS station", size: "sm", color: "#444444" },
+              { type: "text", text: "🅿️ มีที่จอดรถ / Parking available", size: "sm", color: "#444444" },
+              { type: "text", text: "🏙️ ย่านธุรกิจ / Business district", size: "sm", color: "#444444" },
+            ],
+          },
+        ],
+        paddingAll: "20px",
+      },
+    },
+    quickReply: backToMenuQuickReply,
+  };
+}
+
+function benefitsFlex() {
+  return {
+    type: "flex",
+    altText: "Benefits at TP Thailand",
+    contents: {
+      type: "bubble",
+      size: "mega",
+      header: {
+        type: "box",
+        layout: "vertical",
+        contents: [
+          { type: "text", text: "🎁 สวัสดิการ / Benefits", weight: "bold", size: "lg", color: "#FFFFFF" },
+        ],
+        backgroundColor: "#FF0082",
+        paddingAll: "20px",
+      },
+      body: {
+        type: "box",
+        layout: "vertical",
+        spacing: "md",
+        contents: [
+          benefitRow("💰", "เงินเดือนแข่งขันได้ / Competitive salary"),
+          benefitRow("🏥", "ประกันสังคม + ประกันกลุ่ม / Insurance"),
+          benefitRow("🎯", "โบนัสประจำปี / Annual bonus"),
+          benefitRow("📚", "ฝึกอบรมฟรี / Free training"),
+          benefitRow("📈", "โอกาสเติบโต / Career growth"),
+          benefitRow("🌍", "สภาพแวดล้อมระดับสากล / International environment"),
+        ],
+        paddingAll: "20px",
+      },
+      footer: {
+        type: "box",
+        layout: "vertical",
+        contents: [
+          {
+            type: "button",
+            style: "primary",
+            color: "#FF0082",
+            action: { type: "message", label: "📝 สมัครเลย / Apply Now!", text: "Apply now" },
+          },
+        ],
+        paddingAll: "10px",
+      },
+    },
+    quickReply: backToMenuQuickReply,
+  };
+}
+
+function benefitRow(icon, text) {
+  return {
+    type: "box",
+    layout: "horizontal",
+    contents: [
+      { type: "text", text: icon, size: "md", flex: 0 },
+      { type: "text", text: text, size: "sm", color: "#444444", margin: "md", wrap: true },
+    ],
+  };
+}
+
+// --- Route Messages ---
 function getReply(text) {
   const msg = text.toLowerCase().trim();
 
-  // Thai greetings
-  if (
-    msg.includes("สวัสดี") ||
-    msg.includes("hello") ||
-    msg.includes("hi") ||
-    msg === "start"
-  ) {
-    return (
-      "สวัสดีค่ะ! Welcome to TP Thailand Recruitment 🇹🇭\n\n" +
-      "ยินดีต้อนรับสู่ TP Thailand!\n\n" +
-      "How can I help you? / ต้องการความช่วยเหลืออะไรคะ?\n\n" +
-      "1️⃣ ดูตำแหน่งงาน / View open positions\n" +
-      "2️⃣ สมัครงาน / Apply now\n" +
-      "3️⃣ สอบถามข้อมูล / Ask a question\n" +
-      "4️⃣ สถานที่ทำงาน / Office locations\n" +
-      "5️⃣ สวัสดิการ / Benefits"
-    );
+  if (msg.includes("สวัสดี") || msg.includes("hello") || msg.includes("hi") || msg === "start" || msg.includes("menu")) {
+    return welcomeFlex();
   }
 
-  // Option 1: Open positions
-  if (msg === "1" || msg.includes("ตำแหน่ง") || msg.includes("position") || msg.includes("job") || msg.includes("งาน")) {
-    return (
-      "📋 ตำแหน่งงานที่เปิดรับ / Open Positions:\n\n" +
-      "🔹 Guest Experience Specialist\n" +
-      "   - Languages: Thai, English\n" +
-      "   - Location: Bangkok\n\n" +
-      "🔹 Customer Service Representative\n" +
-      "   - Languages: Thai, English\n" +
-      "   - Location: Bangkok\n\n" +
-      "🔹 Content Moderator\n" +
-      "   - Languages: Thai\n" +
-      "   - Location: Bangkok\n\n" +
-      "พิมพ์ชื่อตำแหน่งเพื่อดูรายละเอียดเพิ่มเติม\n" +
-      "Type a role name for more details, or type 2 to apply!"
-    );
+  if (msg === "1" || msg.includes("ตำแหน่ง") || msg.includes("position") || msg.includes("job") || msg.includes("งาน") || msg.includes("view open")) {
+    return positionsFlex();
   }
 
-  // Option 2: Apply
   if (msg === "2" || msg.includes("สมัคร") || msg.includes("apply")) {
-    return (
-      "📝 สมัครงาน / Apply Now\n\n" +
-      "You can apply through our careers page:\n" +
-      "🔗 https://careers.tp.com\n\n" +
-      "หรือส่งข้อมูลต่อไปนี้มาทาง LINE นี้:\n" +
-      "Or send us the following info via this chat:\n\n" +
-      "1. ชื่อ-นามสกุล / Full Name\n" +
-      "2. เบอร์โทร / Phone Number\n" +
-      "3. อีเมล / Email\n" +
-      "4. ตำแหน่งที่สนใจ / Position interested in\n" +
-      "5. ภาษาที่พูดได้ / Languages spoken"
-    );
+    return applyFlex();
   }
 
-  // Option 3: Questions
-  if (msg === "3" || msg.includes("ถาม") || msg.includes("question") || msg.includes("info")) {
-    return (
-      "❓ คำถามที่พบบ่อย / FAQ:\n\n" +
-      "Q: TP คืออะไร? / What is TP?\n" +
-      "A: TP (Teleperformance) เป็นผู้นำระดับโลกด้าน Digital Business Services มีพนักงานกว่า 500,000 คนใน 100+ ประเทศ\n\n" +
-      "Q: ต้องมีประสบการณ์ไหม? / Do I need experience?\n" +
-      "A: ไม่จำเป็น! เรามีการฝึกอบรมให้ / No experience needed! We provide full training.\n\n" +
-      "Q: ทำงานที่ไหน? / Where is the office?\n" +
-      "A: กรุงเทพฯ / Bangkok, Thailand\n\n" +
-      "มีคำถามเพิ่มเติม? พิมพ์ถามได้เลยค่ะ!\n" +
-      "Have more questions? Just type and ask!"
-    );
+  if (msg === "3" || msg.includes("ถาม") || msg.includes("question") || msg.includes("info") || msg.includes("ask")) {
+    return faqFlex();
   }
 
-  // Option 4: Locations
   if (msg === "4" || msg.includes("สถานที่") || msg.includes("location") || msg.includes("office") || msg.includes("ที่ทำงาน")) {
-    return (
-      "📍 สถานที่ทำงาน / Office Locations:\n\n" +
-      "🏢 TP Thailand - Bangkok\n" +
-      "   กรุงเทพมหานคร, ประเทศไทย\n\n" +
-      "🚇 ใกล้ BTS / Near BTS station\n" +
-      "🅿️ มีที่จอดรถ / Parking available\n\n" +
-      "พิมพ์ 1 เพื่อดูตำแหน่งงาน หรือ 2 เพื่อสมัครงาน"
-    );
+    return locationsFlex();
   }
 
-  // Option 5: Benefits
   if (msg === "5" || msg.includes("สวัสดิการ") || msg.includes("benefit") || msg.includes("salary") || msg.includes("เงินเดือน")) {
-    return (
-      "🎁 สวัสดิการ / Benefits:\n\n" +
-      "✅ เงินเดือนแข่งขันได้ / Competitive salary\n" +
-      "✅ ประกันสังคม + ประกันกลุ่ม / Social security + Group insurance\n" +
-      "✅ โบนัสประจำปี / Annual bonus\n" +
-      "✅ ฝึกอบรมฟรี / Free training provided\n" +
-      "✅ โอกาสเติบโตในสายงาน / Career growth opportunities\n" +
-      "✅ สภาพแวดล้อมการทำงานระดับสากล / International work environment\n\n" +
-      "พร้อมสมัครแล้วหรือยัง? พิมพ์ 2 เลยค่ะ! 🚀"
-    );
+    return benefitsFlex();
   }
 
-  // Default / fallback
-  return (
-    "ขอบคุณสำหรับข้อความค่ะ! 🙏\n" +
-    "Thank you for your message!\n\n" +
-    "พิมพ์ 'Hi' เพื่อดูเมนูหลัก\n" +
-    "Type 'Hi' to see the main menu.\n\n" +
-    "หรือเลือกหมายเลข / Or pick a number:\n" +
-    "1️⃣ ตำแหน่งงาน  2️⃣ สมัครงาน  3️⃣ FAQ\n" +
-    "4️⃣ สถานที่  5️⃣ สวัสดิการ"
-  );
+  // Default — show welcome with buttons
+  return welcomeFlex();
 }
 
 // --- Webhook Handler ---
@@ -153,24 +516,15 @@ module.exports = async (req, res) => {
   for (const event of events) {
     try {
       if (event.type === "follow") {
-        // New friend added the bot
         await client.replyMessage({
           replyToken: event.replyToken,
-          messages: [
-            {
-              type: "text",
-              text:
-                "สวัสดีค่ะ! Welcome to TP Thailand Recruitment 🇹🇭\n\n" +
-                "ยินดีต้อนรับสู่ TP Thailand!\n\n" +
-                "พิมพ์ 'Hi' เพื่อเริ่มต้น / Type 'Hi' to get started!",
-            },
-          ],
+          messages: [welcomeFlex()],
         });
       } else if (event.type === "message" && event.message.type === "text") {
         const reply = getReply(event.message.text);
         await client.replyMessage({
           replyToken: event.replyToken,
-          messages: [{ type: "text", text: reply }],
+          messages: [reply],
         });
       }
     } catch (err) {
