@@ -1,0 +1,8 @@
+{
+  "name": "tp-thailand-line-bot",
+  "version": "1.0.0",
+  "description": "TP Thailand Recruitment LINE Bot",
+  "dependencies": {
+    "@line/bot-sdk": "^9.0.0"
+  }
+}
