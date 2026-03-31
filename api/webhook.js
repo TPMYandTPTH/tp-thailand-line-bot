@@ -1,5 +1,7 @@
 const { messagingApi } = require("@line/bot-sdk");
 const crypto = require("crypto");
+const path = require("path");
+const fs = require("fs");
 
 // --- Config ---
 const config = {
@@ -11,10 +13,14 @@ const client = new messagingApi.MessagingApiClient({
   channelAccessToken: config.channelAccessToken,
 });
 
-// --- Constants ---
-const HALLO_ASSESSMENT_URL =
-  "https://app.hallo.ai/teleperformance/ai-assessment/taQuestionnaire_interview_speaking-th_writing-th_listening-th_reading-th_typing-th/th?assessmentTypeId=SEozdUVBUTh0STFwdm04TXBDVE4=";
+// --- Load Jobs Data ---
+function loadData() {
+  const dataPath = path.join(__dirname, "..", "data", "jobs.json");
+  const raw = fs.readFileSync(dataPath, "utf-8");
+  return JSON.parse(raw);
+}
 
+// --- Constants ---
 const TP_DARK = "#4B4C6A";
 const TP_PINK = "#FF0082";
 
@@ -45,7 +51,9 @@ const backToMenuQuickReply = {
   ],
 };
 
-// --- Flex Message Builders ---
+// ============================================================
+// FLEX MESSAGE BUILDERS
+// ============================================================
 
 function welcomeFlex() {
   return {
@@ -93,269 +101,20 @@ function welcomeFlex() {
   };
 }
 
-// --- APPLY FLOW: Step 1 — Ask if applied before ---
-function applyAskPreviousFlex() {
-  return {
-    type: "flex",
-    altText: "Have you applied to TP before?",
-    contents: {
-      type: "bubble",
-      size: "mega",
-      header: {
-        type: "box",
-        layout: "vertical",
-        contents: [
-          { type: "text", text: "📝 สมัครงาน / Apply", weight: "bold", size: "lg", color: "#FFFFFF" },
-        ],
-        backgroundColor: TP_PINK,
-        paddingAll: "20px",
-      },
-      body: {
-        type: "box",
-        layout: "vertical",
-        contents: [
-          {
-            type: "text",
-            text: "คุณเคยสมัครงานกับ TP มาก่อนหรือไม่?",
-            weight: "bold",
-            size: "md",
-            wrap: true,
-          },
-          {
-            type: "text",
-            text: "Have you applied to TP before?",
-            size: "sm",
-            color: "#888888",
-            margin: "sm",
-            wrap: true,
-          },
-        ],
-        paddingAll: "20px",
-      },
-      footer: {
-        type: "box",
-        layout: "horizontal",
-        spacing: "md",
-        contents: [
-          {
-            type: "button",
-            style: "primary",
-            color: TP_DARK,
-            action: { type: "message", label: "✅ เคย / Yes", text: "Yes I applied before" },
-          },
-          {
-            type: "button",
-            style: "primary",
-            color: TP_PINK,
-            action: { type: "message", label: "❌ ยังไม่เคย / No", text: "No first time applying" },
-          },
-        ],
-        paddingAll: "15px",
-      },
-    },
-  };
-}
-
-// --- APPLY FLOW: Step 2a — Yes → Send assessment link ---
-function appliedBeforeAssessmentFlex() {
-  return {
-    type: "flex",
-    altText: "Take your language assessment",
-    contents: {
-      type: "bubble",
-      size: "mega",
-      header: {
-        type: "box",
-        layout: "vertical",
-        contents: [
-          { type: "text", text: "📋 Language Assessment", weight: "bold", size: "lg", color: "#FFFFFF" },
-          { type: "text", text: "แบบทดสอบภาษา", size: "md", color: "#FFFFFFCC", margin: "xs" },
-        ],
-        backgroundColor: TP_DARK,
-        paddingAll: "20px",
-      },
-      body: {
-        type: "box",
-        layout: "vertical",
-        contents: [
-          {
-            type: "text",
-            text: "ยินดีต้อนรับกลับมาค่ะ! 🎉",
-            weight: "bold",
-            size: "md",
-          },
-          {
-            type: "text",
-            text: "Welcome back!",
-            size: "sm",
-            color: "#888888",
-            margin: "xs",
-          },
-          { type: "separator", margin: "lg" },
-          {
-            type: "text",
-            text: "กรุณาทำแบบทดสอบภาษาด้านล่างเพื่อดำเนินการสมัครงานต่อ",
-            size: "sm",
-            color: "#666666",
-            margin: "lg",
-            wrap: true,
-          },
-          {
-            type: "text",
-            text: "Please complete the language assessment below to proceed with your application.",
-            size: "sm",
-            color: "#888888",
-            margin: "sm",
-            wrap: true,
-          },
-          { type: "separator", margin: "lg" },
-          {
-            type: "box",
-            layout: "vertical",
-            margin: "lg",
-            spacing: "sm",
-            contents: [
-              { type: "text", text: "🗣️ Speaking / การพูด", size: "sm", color: "#444444" },
-              { type: "text", text: "✍️ Writing / การเขียน", size: "sm", color: "#444444" },
-              { type: "text", text: "👂 Listening / การฟัง", size: "sm", color: "#444444" },
-              { type: "text", text: "📖 Reading / การอ่าน", size: "sm", color: "#444444" },
-              { type: "text", text: "⌨️ Typing / การพิมพ์", size: "sm", color: "#444444" },
-            ],
-          },
-        ],
-        paddingAll: "20px",
-      },
-      footer: {
-        type: "box",
-        layout: "vertical",
-        spacing: "sm",
-        contents: [
-          {
-            type: "button",
-            style: "primary",
-            color: TP_PINK,
-            height: "md",
-            action: {
-              type: "uri",
-              label: "🚀 เริ่มทำแบบทดสอบ / Start Assessment",
-              uri: HALLO_ASSESSMENT_URL,
-            },
-          },
-          {
-            type: "button",
-            style: "secondary",
-            action: { type: "message", label: "🏠 กลับเมนูหลัก / Main Menu", text: "Hi" },
-          },
-        ],
-        paddingAll: "15px",
-      },
-    },
-  };
-}
-
-// --- APPLY FLOW: Step 2b — No → New applicant form ---
-function newApplicantFlex() {
-  return {
-    type: "flex",
-    altText: "Apply Now - TP Thailand",
-    contents: {
-      type: "bubble",
-      size: "mega",
-      header: {
-        type: "box",
-        layout: "vertical",
-        contents: [
-          { type: "text", text: "📝 สมัครงาน / Apply Now", weight: "bold", size: "lg", color: "#FFFFFF" },
-          { type: "text", text: "ผู้สมัครใหม่ / New Applicant", size: "sm", color: "#FFFFFFCC", margin: "xs" },
-        ],
-        backgroundColor: TP_PINK,
-        paddingAll: "20px",
-      },
-      body: {
-        type: "box",
-        layout: "vertical",
-        contents: [
-          {
-            type: "text",
-            text: "ยินดีต้อนรับค่ะ! เรายินดีที่คุณสนใจร่วมงานกับเรา 🎉",
-            size: "sm",
-            color: "#666666",
-            wrap: true,
-          },
-          {
-            type: "text",
-            text: "We're glad you're interested in joining TP!",
-            size: "sm",
-            color: "#888888",
-            margin: "xs",
-            wrap: true,
-          },
-          { type: "separator", margin: "lg" },
-          {
-            type: "text",
-            text: "กรุณาส่งข้อมูลต่อไปนี้:",
-            weight: "bold",
-            size: "sm",
-            margin: "lg",
-          },
-          {
-            type: "text",
-            text: "Please send us the following:",
-            size: "sm",
-            color: "#888888",
-            margin: "xs",
-          },
-          {
-            type: "box",
-            layout: "vertical",
-            margin: "lg",
-            spacing: "sm",
-            contents: [
-              { type: "text", text: "1. ชื่อ-นามสกุล / Full Name", size: "sm", color: "#444444" },
-              { type: "text", text: "2. เบอร์โทร / Phone Number", size: "sm", color: "#444444" },
-              { type: "text", text: "3. อีเมล / Email", size: "sm", color: "#444444" },
-              { type: "text", text: "4. ตำแหน่งที่สนใจ / Position", size: "sm", color: "#444444" },
-              { type: "text", text: "5. ภาษาที่พูดได้ / Languages", size: "sm", color: "#444444" },
-            ],
-          },
-        ],
-        paddingAll: "20px",
-      },
-      footer: {
-        type: "box",
-        layout: "vertical",
-        spacing: "sm",
-        contents: [
-          {
-            type: "button",
-            style: "primary",
-            color: TP_DARK,
-            action: { type: "uri", label: "🔗 สมัครผ่านเว็บไซต์ / Apply Online", uri: "https://careers.tp.com" },
-          },
-          {
-            type: "button",
-            style: "secondary",
-            action: { type: "message", label: "🏠 กลับเมนูหลัก / Main Menu", text: "Hi" },
-          },
-        ],
-        paddingAll: "15px",
-      },
-    },
-  };
-}
-
-// --- Positions Carousel ---
+// --- POSITIONS: Dynamic from jobs.json ---
 function positionsFlex() {
+  const data = loadData();
+  const cards = data.jobs.map((job) => jobCard(job.title, job.languages, job.location, job.description));
+
+  // LINE carousel supports max 12 bubbles
+  const carouselCards = cards.slice(0, 12);
+
   return {
     type: "flex",
     altText: "Open Positions at TP Thailand",
     contents: {
       type: "carousel",
-      contents: [
-        jobCard("Guest Experience Specialist", "Thai, English", "Bangkok", "Deliver exceptional customer support for a global tech brand."),
-        jobCard("Customer Service Representative", "Thai, English", "Bangkok", "Handle inbound inquiries and provide world-class service."),
-        jobCard("Content Moderator", "Thai", "Bangkok", "Review and moderate content to keep online platforms safe."),
-      ],
+      contents: carouselCards,
     },
     quickReply: backToMenuQuickReply,
   };
@@ -419,6 +178,241 @@ function jobCard(title, languages, location, description) {
         },
       ],
       paddingAll: "10px",
+    },
+  };
+}
+
+// --- APPLY FLOW: Step 1 — Ask if applied before ---
+function applyAskPreviousFlex() {
+  return {
+    type: "flex",
+    altText: "Have you applied to TP before?",
+    contents: {
+      type: "bubble",
+      size: "mega",
+      header: {
+        type: "box",
+        layout: "vertical",
+        contents: [
+          { type: "text", text: "📝 สมัครงาน / Apply", weight: "bold", size: "lg", color: "#FFFFFF" },
+        ],
+        backgroundColor: TP_PINK,
+        paddingAll: "20px",
+      },
+      body: {
+        type: "box",
+        layout: "vertical",
+        contents: [
+          { type: "text", text: "คุณเคยสมัครงานกับ TP มาก่อนหรือไม่?", weight: "bold", size: "md", wrap: true },
+          { type: "text", text: "Have you applied to TP before?", size: "sm", color: "#888888", margin: "sm", wrap: true },
+        ],
+        paddingAll: "20px",
+      },
+      footer: {
+        type: "box",
+        layout: "horizontal",
+        spacing: "md",
+        contents: [
+          { type: "button", style: "primary", color: TP_DARK, action: { type: "message", label: "✅ เคย / Yes", text: "Yes I applied before" } },
+          { type: "button", style: "primary", color: TP_PINK, action: { type: "message", label: "❌ ยังไม่เคย / No", text: "No first time applying" } },
+        ],
+        paddingAll: "15px",
+      },
+    },
+  };
+}
+
+// --- APPLY FLOW: Step 2a — Yes → Assessment link (copyable) ---
+function appliedBeforeAssessmentFlex() {
+  const data = loadData();
+  const assessmentUrl = data.assessment_url;
+
+  return {
+    type: "flex",
+    altText: "Take your language assessment",
+    contents: {
+      type: "bubble",
+      size: "mega",
+      header: {
+        type: "box",
+        layout: "vertical",
+        contents: [
+          { type: "text", text: "📋 Language Assessment", weight: "bold", size: "lg", color: "#FFFFFF" },
+          { type: "text", text: "แบบทดสอบภาษา", size: "md", color: "#FFFFFFCC", margin: "xs" },
+        ],
+        backgroundColor: TP_DARK,
+        paddingAll: "20px",
+      },
+      body: {
+        type: "box",
+        layout: "vertical",
+        contents: [
+          { type: "text", text: "ยินดีต้อนรับกลับมาค่ะ! 🎉", weight: "bold", size: "md" },
+          { type: "text", text: "Welcome back!", size: "sm", color: "#888888", margin: "xs" },
+          { type: "separator", margin: "lg" },
+          {
+            type: "text",
+            text: "กรุณาทำแบบทดสอบภาษาเพื่อดำเนินการต่อ\nPlease complete the assessment to proceed.",
+            size: "sm",
+            color: "#666666",
+            margin: "lg",
+            wrap: true,
+          },
+          { type: "separator", margin: "lg" },
+          {
+            type: "box",
+            layout: "vertical",
+            margin: "lg",
+            spacing: "sm",
+            contents: [
+              { type: "text", text: "🗣️ Speaking  ✍️ Writing  👂 Listening", size: "sm", color: "#444444" },
+              { type: "text", text: "📖 Reading  ⌨️ Typing", size: "sm", color: "#444444" },
+            ],
+          },
+          { type: "separator", margin: "lg" },
+          {
+            type: "text",
+            text: "💻 แนะนำให้ทำบน PC / We recommend doing this on a PC",
+            weight: "bold",
+            size: "xs",
+            color: TP_PINK,
+            margin: "lg",
+            wrap: true,
+          },
+          {
+            type: "text",
+            text: "คัดลอกลิงก์ด้านล่าง / Copy the link below:",
+            size: "xs",
+            color: "#888888",
+            margin: "sm",
+            wrap: true,
+          },
+        ],
+        paddingAll: "20px",
+      },
+      footer: {
+        type: "box",
+        layout: "vertical",
+        spacing: "sm",
+        contents: [
+          {
+            type: "button",
+            style: "primary",
+            color: TP_PINK,
+            height: "md",
+            action: { type: "uri", label: "🚀 เริ่มทำแบบทดสอบ / Start", uri: assessmentUrl },
+          },
+          {
+            type: "button",
+            style: "secondary",
+            action: { type: "message", label: "📋 คัดลอกลิงก์ / Copy Link", text: "Send me the assessment link" },
+          },
+          {
+            type: "button",
+            style: "secondary",
+            action: { type: "message", label: "🏠 กลับเมนูหลัก / Main Menu", text: "Hi" },
+          },
+        ],
+        paddingAll: "15px",
+      },
+    },
+  };
+}
+
+// --- Send copyable assessment link as plain text ---
+function assessmentLinkText() {
+  const data = loadData();
+  return {
+    type: "text",
+    text:
+      "📋 ลิงก์แบบทดสอบภาษา / Assessment Link:\n\n" +
+      "💻 แนะนำให้เปิดบน PC / Best on PC:\n\n" +
+      data.assessment_url +
+      "\n\n" +
+      "👆 กดค้างเพื่อคัดลอก / Long press to copy",
+    quickReply: backToMenuQuickReply,
+  };
+}
+
+// --- APPLY FLOW: Step 2b — No → Microsoft Form ---
+function newApplicantFlex() {
+  const data = loadData();
+  const formUrl = data.form_url;
+
+  return {
+    type: "flex",
+    altText: "Apply Now - TP Thailand",
+    contents: {
+      type: "bubble",
+      size: "mega",
+      header: {
+        type: "box",
+        layout: "vertical",
+        contents: [
+          { type: "text", text: "📝 สมัครงาน / Apply Now", weight: "bold", size: "lg", color: "#FFFFFF" },
+          { type: "text", text: "ผู้สมัครใหม่ / New Applicant", size: "sm", color: "#FFFFFFCC", margin: "xs" },
+        ],
+        backgroundColor: TP_PINK,
+        paddingAll: "20px",
+      },
+      body: {
+        type: "box",
+        layout: "vertical",
+        contents: [
+          { type: "text", text: "ยินดีต้อนรับค่ะ! 🎉", weight: "bold", size: "md" },
+          { type: "text", text: "We're glad you're interested in joining TP!", size: "sm", color: "#888888", margin: "xs", wrap: true },
+          { type: "separator", margin: "lg" },
+          {
+            type: "text",
+            text: "กรุณากรอกแบบฟอร์มสมัครงานด้านล่าง\nPlease fill out the application form below.",
+            size: "sm",
+            color: "#666666",
+            margin: "lg",
+            wrap: true,
+          },
+          { type: "separator", margin: "lg" },
+          {
+            type: "text",
+            text: "ข้อมูลที่ต้องกรอก / Required info:",
+            weight: "bold",
+            size: "sm",
+            margin: "lg",
+          },
+          {
+            type: "box",
+            layout: "vertical",
+            margin: "md",
+            spacing: "sm",
+            contents: [
+              { type: "text", text: "• ชื่อ-นามสกุล / Full Name", size: "sm", color: "#444444" },
+              { type: "text", text: "• เบอร์โทร / Phone Number", size: "sm", color: "#444444" },
+              { type: "text", text: "• อีเมล / Email", size: "sm", color: "#444444" },
+              { type: "text", text: "• ตำแหน่งที่สนใจ / Position", size: "sm", color: "#444444" },
+              { type: "text", text: "• ภาษาที่พูดได้ / Languages", size: "sm", color: "#444444" },
+            ],
+          },
+        ],
+        paddingAll: "20px",
+      },
+      footer: {
+        type: "box",
+        layout: "vertical",
+        spacing: "sm",
+        contents: [
+          {
+            type: "button",
+            style: "primary",
+            color: TP_PINK,
+            action: { type: "uri", label: "📝 กรอกแบบฟอร์ม / Fill Form", uri: formUrl },
+          },
+          {
+            type: "button",
+            style: "secondary",
+            action: { type: "message", label: "🏠 กลับเมนูหลัก / Main Menu", text: "Hi" },
+          },
+        ],
+        paddingAll: "15px",
+      },
     },
   };
 }
@@ -548,12 +542,7 @@ function benefitsFlex() {
         type: "box",
         layout: "vertical",
         contents: [
-          {
-            type: "button",
-            style: "primary",
-            color: TP_PINK,
-            action: { type: "message", label: "📝 สมัครเลย / Apply Now!", text: "Apply now" },
-          },
+          { type: "button", style: "primary", color: TP_PINK, action: { type: "message", label: "📝 สมัครเลย / Apply Now!", text: "Apply now" } },
         ],
         paddingAll: "10px",
       },
@@ -573,55 +562,64 @@ function benefitRow(icon, text) {
   };
 }
 
-// --- Route Messages ---
+// ============================================================
+// ROUTE MESSAGES
+// ============================================================
 function getReply(text) {
   const msg = text.toLowerCase().trim();
 
   // Greetings / Main menu
   if (msg.includes("สวัสดี") || msg.includes("hello") || msg.includes("hi") || msg === "start" || msg.includes("menu")) {
-    return welcomeFlex();
+    return [welcomeFlex()];
   }
 
-  // Positions
+  // Positions (dynamic from jobs.json)
   if (msg === "1" || msg.includes("ตำแหน่ง") || msg.includes("position") || msg.includes("job") || msg.includes("งาน") || msg.includes("view open")) {
-    return positionsFlex();
+    return [positionsFlex()];
   }
 
   // Apply → Ask if applied before
   if (msg === "2" || msg.includes("สมัคร") || msg.includes("apply now")) {
-    return applyAskPreviousFlex();
+    return [applyAskPreviousFlex()];
   }
 
-  // Yes — applied before → send assessment
+  // Yes — applied before → assessment card
   if (msg.includes("yes i applied") || msg.includes("เคย")) {
-    return appliedBeforeAssessmentFlex();
+    return [appliedBeforeAssessmentFlex()];
   }
 
-  // No — first time → new applicant form
+  // Send copyable assessment link as plain text
+  if (msg.includes("send me the assessment") || msg.includes("copy link") || msg.includes("assessment link")) {
+    return [assessmentLinkText()];
+  }
+
+  // No — first time → Microsoft Form
   if (msg.includes("no first time") || msg.includes("ยังไม่เคย") || msg.includes("ไม่เคย")) {
-    return newApplicantFlex();
+    return [newApplicantFlex()];
   }
 
   // FAQ
   if (msg === "3" || msg.includes("ถาม") || msg.includes("question") || msg.includes("info") || msg.includes("ask")) {
-    return faqFlex();
+    return [faqFlex()];
   }
 
   // Locations
   if (msg === "4" || msg.includes("สถานที่") || msg.includes("location") || msg.includes("office") || msg.includes("ที่ทำงาน")) {
-    return locationsFlex();
+    return [locationsFlex()];
   }
 
   // Benefits
   if (msg === "5" || msg.includes("สวัสดิการ") || msg.includes("benefit") || msg.includes("salary") || msg.includes("เงินเดือน")) {
-    return benefitsFlex();
+    return [benefitsFlex()];
   }
 
   // Default
-  return welcomeFlex();
+  return [welcomeFlex()];
 }
 
-// --- Webhook Handler ---
+// ============================================================
+// WEBHOOK HANDLER
+// ============================================================
 module.exports = async (req, res) => {
   if (req.method === "GET") {
     return res.status(200).send("TP Thailand LINE Bot is running 🇹🇭");
@@ -646,10 +644,10 @@ module.exports = async (req, res) => {
           messages: [welcomeFlex()],
         });
       } else if (event.type === "message" && event.message.type === "text") {
-        const reply = getReply(event.message.text);
+        const replies = getReply(event.message.text);
         await client.replyMessage({
           replyToken: event.replyToken,
-          messages: [reply],
+          messages: replies,
         });
       }
     } catch (err) {
