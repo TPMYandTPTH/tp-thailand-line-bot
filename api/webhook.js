@@ -51,6 +51,19 @@ const backToMenuQuickReply = {
   ],
 };
 
+const languageQuickReply = {
+  items: [
+    { type: "action", action: { type: "message", label: "🇯🇵 Japanese", text: "Jobs Japanese" } },
+    { type: "action", action: { type: "message", label: "🇰🇷 Korean", text: "Jobs Korean" } },
+    { type: "action", action: { type: "message", label: "🇹🇭 Thai", text: "Jobs Thai" } },
+    { type: "action", action: { type: "message", label: "🇻🇳 Vietnamese", text: "Jobs Vietnamese" } },
+    { type: "action", action: { type: "message", label: "🇮🇩 Bahasa", text: "Jobs Bahasa Indonesia" } },
+    { type: "action", action: { type: "message", label: "🇨🇳 Mandarin", text: "Jobs Mandarin" } },
+    { type: "action", action: { type: "message", label: "🇹🇼 Taiwanese", text: "Jobs Taiwanese" } },
+    { type: "action", action: { type: "message", label: "🇬🇧 English", text: "Jobs English" } },
+  ],
+};
+
 // ============================================================
 // FLEX MESSAGE BUILDERS
 // ============================================================
@@ -101,34 +114,110 @@ function welcomeFlex() {
   };
 }
 
-// --- POSITIONS: Dynamic from jobs.json ---
-function positionsFlex() {
-  const data = loadData();
-  const cards = data.jobs.map((job) => jobCard(job.title, job.languages, job.location, job.description));
-
-  // LINE carousel supports max 12 bubbles
-  const carouselCards = cards.slice(0, 12);
+// --- LANGUAGE SELECTION (for both View Positions and New Applicant) ---
+function languageSelectionFlex(context) {
+  const headerText = context === "apply"
+    ? "📝 เลือกภาษา / Choose Language"
+    : "📋 เลือกภาษา / Choose Language";
+  const bodyText = context === "apply"
+    ? "คุณพูดภาษาอะไร? เราจะแสดงตำแหน่งที่เหมาะกับคุณ\nWhat language do you speak? We'll show matching positions."
+    : "เลือกภาษาเพื่อดูตำแหน่งที่เปิดรับ\nSelect a language to view open positions.";
 
   return {
     type: "flex",
-    altText: "Open Positions at TP Thailand",
+    altText: "Choose your language",
     contents: {
-      type: "carousel",
-      contents: carouselCards,
+      type: "bubble",
+      size: "mega",
+      header: {
+        type: "box",
+        layout: "vertical",
+        contents: [
+          { type: "text", text: headerText, weight: "bold", size: "lg", color: "#FFFFFF" },
+        ],
+        backgroundColor: context === "apply" ? TP_PINK : TP_DARK,
+        paddingAll: "20px",
+      },
+      body: {
+        type: "box",
+        layout: "vertical",
+        contents: [
+          { type: "text", text: bodyText, size: "sm", color: "#666666", wrap: true },
+        ],
+        paddingAll: "20px",
+      },
+      footer: {
+        type: "box",
+        layout: "vertical",
+        spacing: "sm",
+        contents: [
+          {
+            type: "box",
+            layout: "horizontal",
+            spacing: "sm",
+            contents: [
+              { type: "button", style: "primary", color: TP_DARK, flex: 1, action: { type: "message", label: "🇯🇵 Japanese", text: "Jobs Japanese" } },
+              { type: "button", style: "primary", color: TP_DARK, flex: 1, action: { type: "message", label: "🇰🇷 Korean", text: "Jobs Korean" } },
+            ],
+          },
+          {
+            type: "box",
+            layout: "horizontal",
+            spacing: "sm",
+            contents: [
+              { type: "button", style: "primary", color: TP_DARK, flex: 1, action: { type: "message", label: "🇹🇭 Thai", text: "Jobs Thai" } },
+              { type: "button", style: "primary", color: TP_DARK, flex: 1, action: { type: "message", label: "🇻🇳 Vietnamese", text: "Jobs Vietnamese" } },
+            ],
+          },
+          {
+            type: "box",
+            layout: "horizontal",
+            spacing: "sm",
+            contents: [
+              { type: "button", style: "primary", color: TP_DARK, flex: 1, action: { type: "message", label: "🇮🇩 Bahasa", text: "Jobs Bahasa Indonesia" } },
+              { type: "button", style: "primary", color: TP_DARK, flex: 1, action: { type: "message", label: "🇨🇳 Mandarin", text: "Jobs Mandarin" } },
+            ],
+          },
+          {
+            type: "box",
+            layout: "horizontal",
+            spacing: "sm",
+            contents: [
+              { type: "button", style: "primary", color: TP_DARK, flex: 1, action: { type: "message", label: "🇹🇼 Taiwanese", text: "Jobs Taiwanese" } },
+              { type: "button", style: "primary", color: TP_DARK, flex: 1, action: { type: "message", label: "🇬🇧 English", text: "Jobs English" } },
+            ],
+          },
+        ],
+        paddingAll: "15px",
+      },
     },
-    quickReply: backToMenuQuickReply,
+    quickReply: languageQuickReply,
   };
 }
 
-function jobCard(title, languages, location, description) {
-  return {
+// --- JOB CARDS BY LANGUAGE (carousel with iCIMS Apply links) ---
+function jobsByLanguageFlex(language) {
+  const data = loadData();
+  const filtered = data.jobs.filter(
+    (j) => j.language.toLowerCase() === language.toLowerCase()
+  );
+
+  if (filtered.length === 0) {
+    return {
+      type: "text",
+      text: "ขออภัย ไม่พบตำแหน่งงานสำหรับภาษา " + language + " ในขณะนี้\nSorry, no positions found for " + language + " at this time.",
+      quickReply: backToMenuQuickReply,
+    };
+  }
+
+  const cards = filtered.slice(0, 12).map((job) => ({
     type: "bubble",
     size: "kilo",
     header: {
       type: "box",
       layout: "vertical",
       contents: [
-        { type: "text", text: title, weight: "bold", size: "md", color: "#FFFFFF", wrap: true },
+        { type: "text", text: job.title, weight: "bold", size: "md", color: "#FFFFFF", wrap: true },
       ],
       backgroundColor: TP_DARK,
       paddingAll: "15px",
@@ -137,7 +226,7 @@ function jobCard(title, languages, location, description) {
       type: "box",
       layout: "vertical",
       contents: [
-        { type: "text", text: description, size: "sm", color: "#666666", wrap: true },
+        { type: "text", text: job.description, size: "sm", color: "#666666", wrap: true },
         { type: "separator", margin: "lg" },
         {
           type: "box",
@@ -150,7 +239,7 @@ function jobCard(title, languages, location, description) {
               layout: "horizontal",
               contents: [
                 { type: "text", text: "🌐", size: "sm", flex: 0 },
-                { type: "text", text: languages, size: "sm", color: "#444444", margin: "md" },
+                { type: "text", text: job.language, size: "sm", color: "#444444", margin: "md" },
               ],
             },
             {
@@ -158,7 +247,7 @@ function jobCard(title, languages, location, description) {
               layout: "horizontal",
               contents: [
                 { type: "text", text: "📍", size: "sm", flex: 0 },
-                { type: "text", text: location, size: "sm", color: "#444444", margin: "md" },
+                { type: "text", text: job.location, size: "sm", color: "#444444", margin: "md" },
               ],
             },
           ],
@@ -174,10 +263,22 @@ function jobCard(title, languages, location, description) {
           type: "button",
           style: "primary",
           color: TP_PINK,
-          action: { type: "message", label: "สมัครเลย / Apply", text: "Apply now" },
+          action: { type: "uri", label: "📝 สมัครเลย / Apply", uri: job.link },
         },
       ],
       paddingAll: "10px",
+    },
+  }));
+
+  return {
+    type: "flex",
+    altText: language + " positions at TP Thailand",
+    contents: { type: "carousel", contents: cards },
+    quickReply: {
+      items: [
+        { type: "action", action: { type: "message", label: "🔄 เปลี่ยนภาษา / Change", text: "View open positions" } },
+        { type: "action", action: { type: "message", label: "🏠 Main Menu", text: "Hi" } },
+      ],
     },
   };
 }
@@ -225,8 +326,6 @@ function applyAskPreviousFlex() {
 // --- APPLY FLOW: Step 2a — Yes → Assessment link (copyable) ---
 function appliedBeforeAssessmentFlex() {
   const data = loadData();
-  const assessmentUrl = data.assessment_url;
-
   return {
     type: "flex",
     altText: "Take your language assessment",
@@ -250,14 +349,7 @@ function appliedBeforeAssessmentFlex() {
           { type: "text", text: "ยินดีต้อนรับกลับมาค่ะ! 🎉", weight: "bold", size: "md" },
           { type: "text", text: "Welcome back!", size: "sm", color: "#888888", margin: "xs" },
           { type: "separator", margin: "lg" },
-          {
-            type: "text",
-            text: "กรุณาทำแบบทดสอบภาษาเพื่อดำเนินการต่อ\nPlease complete the assessment to proceed.",
-            size: "sm",
-            color: "#666666",
-            margin: "lg",
-            wrap: true,
-          },
+          { type: "text", text: "กรุณาทำแบบทดสอบภาษาเพื่อดำเนินการต่อ\nPlease complete the assessment to proceed.", size: "sm", color: "#666666", margin: "lg", wrap: true },
           { type: "separator", margin: "lg" },
           {
             type: "box",
@@ -270,23 +362,8 @@ function appliedBeforeAssessmentFlex() {
             ],
           },
           { type: "separator", margin: "lg" },
-          {
-            type: "text",
-            text: "💻 แนะนำให้ทำบน PC / We recommend doing this on a PC",
-            weight: "bold",
-            size: "xs",
-            color: TP_PINK,
-            margin: "lg",
-            wrap: true,
-          },
-          {
-            type: "text",
-            text: "คัดลอกลิงก์ด้านล่าง / Copy the link below:",
-            size: "xs",
-            color: "#888888",
-            margin: "sm",
-            wrap: true,
-          },
+          { type: "text", text: "💻 แนะนำให้ทำบน PC / Best on PC", weight: "bold", size: "xs", color: TP_PINK, margin: "lg", wrap: true },
+          { type: "text", text: "กดปุ่ม 'คัดลอกลิงก์' เพื่อคัดลอกแล้วเปิดบน PC", size: "xs", color: "#888888", margin: "sm", wrap: true },
         ],
         paddingAll: "20px",
       },
@@ -295,23 +372,9 @@ function appliedBeforeAssessmentFlex() {
         layout: "vertical",
         spacing: "sm",
         contents: [
-          {
-            type: "button",
-            style: "primary",
-            color: TP_PINK,
-            height: "md",
-            action: { type: "uri", label: "🚀 เริ่มทำแบบทดสอบ / Start", uri: assessmentUrl },
-          },
-          {
-            type: "button",
-            style: "secondary",
-            action: { type: "message", label: "📋 คัดลอกลิงก์ / Copy Link", text: "Send me the assessment link" },
-          },
-          {
-            type: "button",
-            style: "secondary",
-            action: { type: "message", label: "🏠 กลับเมนูหลัก / Main Menu", text: "Hi" },
-          },
+          { type: "button", style: "primary", color: TP_PINK, action: { type: "uri", label: "🚀 เริ่มทำแบบทดสอบ / Start", uri: data.assessment_url } },
+          { type: "button", style: "secondary", action: { type: "message", label: "📋 คัดลอกลิงก์ / Copy Link", text: "Send me the assessment link" } },
+          { type: "button", style: "secondary", action: { type: "message", label: "🏠 กลับเมนูหลัก / Main Menu", text: "Hi" } },
         ],
         paddingAll: "15px",
       },
@@ -331,89 +394,6 @@ function assessmentLinkText() {
       "\n\n" +
       "👆 กดค้างเพื่อคัดลอก / Long press to copy",
     quickReply: backToMenuQuickReply,
-  };
-}
-
-// --- APPLY FLOW: Step 2b — No → Microsoft Form ---
-function newApplicantFlex() {
-  const data = loadData();
-  const formUrl = data.form_url;
-
-  return {
-    type: "flex",
-    altText: "Apply Now - TP Thailand",
-    contents: {
-      type: "bubble",
-      size: "mega",
-      header: {
-        type: "box",
-        layout: "vertical",
-        contents: [
-          { type: "text", text: "📝 สมัครงาน / Apply Now", weight: "bold", size: "lg", color: "#FFFFFF" },
-          { type: "text", text: "ผู้สมัครใหม่ / New Applicant", size: "sm", color: "#FFFFFFCC", margin: "xs" },
-        ],
-        backgroundColor: TP_PINK,
-        paddingAll: "20px",
-      },
-      body: {
-        type: "box",
-        layout: "vertical",
-        contents: [
-          { type: "text", text: "ยินดีต้อนรับค่ะ! 🎉", weight: "bold", size: "md" },
-          { type: "text", text: "We're glad you're interested in joining TP!", size: "sm", color: "#888888", margin: "xs", wrap: true },
-          { type: "separator", margin: "lg" },
-          {
-            type: "text",
-            text: "กรุณากรอกแบบฟอร์มสมัครงานด้านล่าง\nPlease fill out the application form below.",
-            size: "sm",
-            color: "#666666",
-            margin: "lg",
-            wrap: true,
-          },
-          { type: "separator", margin: "lg" },
-          {
-            type: "text",
-            text: "ข้อมูลที่ต้องกรอก / Required info:",
-            weight: "bold",
-            size: "sm",
-            margin: "lg",
-          },
-          {
-            type: "box",
-            layout: "vertical",
-            margin: "md",
-            spacing: "sm",
-            contents: [
-              { type: "text", text: "• ชื่อ-นามสกุล / Full Name", size: "sm", color: "#444444" },
-              { type: "text", text: "• เบอร์โทร / Phone Number", size: "sm", color: "#444444" },
-              { type: "text", text: "• อีเมล / Email", size: "sm", color: "#444444" },
-              { type: "text", text: "• ตำแหน่งที่สนใจ / Position", size: "sm", color: "#444444" },
-              { type: "text", text: "• ภาษาที่พูดได้ / Languages", size: "sm", color: "#444444" },
-            ],
-          },
-        ],
-        paddingAll: "20px",
-      },
-      footer: {
-        type: "box",
-        layout: "vertical",
-        spacing: "sm",
-        contents: [
-          {
-            type: "button",
-            style: "primary",
-            color: TP_PINK,
-            action: { type: "uri", label: "📝 กรอกแบบฟอร์ม / Fill Form", uri: formUrl },
-          },
-          {
-            type: "button",
-            style: "secondary",
-            action: { type: "message", label: "🏠 กลับเมนูหลัก / Main Menu", text: "Hi" },
-          },
-        ],
-        paddingAll: "15px",
-      },
-    },
   };
 }
 
@@ -452,13 +432,13 @@ function faqFlex() {
   };
 }
 
-function faqItem(question, answer) {
+function faqItem(q, a) {
   return {
     type: "box",
     layout: "vertical",
     contents: [
-      { type: "text", text: question, weight: "bold", size: "sm", color: TP_DARK, wrap: true },
-      { type: "text", text: answer, size: "sm", color: "#666666", margin: "sm", wrap: true },
+      { type: "text", text: q, weight: "bold", size: "sm", color: TP_DARK, wrap: true },
+      { type: "text", text: a, size: "sm", color: "#666666", margin: "sm", wrap: true },
     ],
   };
 }
@@ -568,52 +548,58 @@ function benefitRow(icon, text) {
 function getReply(text) {
   const msg = text.toLowerCase().trim();
 
-  // Greetings / Main menu
+  // --- Greetings / Main menu ---
   if (msg.includes("สวัสดี") || msg.includes("hello") || msg.includes("hi") || msg === "start" || msg.includes("menu")) {
     return [welcomeFlex()];
   }
 
-  // Positions (dynamic from jobs.json)
-  if (msg === "1" || msg.includes("ตำแหน่ง") || msg.includes("position") || msg.includes("job") || msg.includes("งาน") || msg.includes("view open")) {
-    return [positionsFlex()];
+  // --- View Positions → Language selection ---
+  if (msg === "1" || msg.includes("ตำแหน่ง") || msg.includes("position") || msg.includes("view open")) {
+    return [languageSelectionFlex("view")];
   }
 
-  // Apply → Ask if applied before
+  // --- Jobs by language ---
+  if (msg.startsWith("jobs ")) {
+    const lang = text.replace(/^jobs\s+/i, "").trim();
+    return [jobsByLanguageFlex(lang)];
+  }
+
+  // --- Apply → Ask if applied before ---
   if (msg === "2" || msg.includes("สมัคร") || msg.includes("apply now")) {
     return [applyAskPreviousFlex()];
   }
 
-  // Yes — applied before → assessment card
+  // --- Yes → Assessment ---
   if (msg.includes("yes i applied") || msg.includes("เคย")) {
     return [appliedBeforeAssessmentFlex()];
   }
 
-  // Send copyable assessment link as plain text
+  // --- Copyable assessment link ---
   if (msg.includes("send me the assessment") || msg.includes("copy link") || msg.includes("assessment link")) {
     return [assessmentLinkText()];
   }
 
-  // No — first time → Microsoft Form
+  // --- No → Language selection for job application ---
   if (msg.includes("no first time") || msg.includes("ยังไม่เคย") || msg.includes("ไม่เคย")) {
-    return [newApplicantFlex()];
+    return [languageSelectionFlex("apply")];
   }
 
-  // FAQ
-  if (msg === "3" || msg.includes("ถาม") || msg.includes("question") || msg.includes("info") || msg.includes("ask")) {
+  // --- FAQ ---
+  if (msg === "3" || msg.includes("ถาม") || msg.includes("question") || msg.includes("faq")) {
     return [faqFlex()];
   }
 
-  // Locations
+  // --- Locations ---
   if (msg === "4" || msg.includes("สถานที่") || msg.includes("location") || msg.includes("office") || msg.includes("ที่ทำงาน")) {
     return [locationsFlex()];
   }
 
-  // Benefits
+  // --- Benefits ---
   if (msg === "5" || msg.includes("สวัสดิการ") || msg.includes("benefit") || msg.includes("salary") || msg.includes("เงินเดือน")) {
     return [benefitsFlex()];
   }
 
-  // Default
+  // --- Default ---
   return [welcomeFlex()];
 }
 
@@ -631,7 +617,6 @@ module.exports = async (req, res) => {
   }
 
   const events = req.body.events || [];
-
   if (events.length === 0) {
     return res.status(200).json({ status: "ok" });
   }
