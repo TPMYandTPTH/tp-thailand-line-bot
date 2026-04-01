@@ -8,10 +8,7 @@ const config = {
   channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN,
 };
 const SCRIPT_URL = process.env.GOOGLE_SCRIPT_URL;
-
-const client = new messagingApi.MessagingApiClient({
-  channelAccessToken: config.channelAccessToken,
-});
+const client = new messagingApi.MessagingApiClient({ channelAccessToken: config.channelAccessToken });
 
 function loadData() {
   return JSON.parse(fs.readFileSync(path.join(__dirname, "..", "data", "jobs.json"), "utf-8"));
@@ -26,32 +23,21 @@ function verifySignature(body, signature) {
 }
 
 // ============================================================
-// IN-MEMORY STATE (no Google calls during questions!)
+// IN-MEMORY STATE
 // ============================================================
-// Global Map persists while Vercel function instance is warm.
-// Only 1 Google call at the very end to save completed candidate.
-
 const userStates = new Map();
 
-// Auto-expire states after 30 minutes of inactivity
 function getState(userId) {
   const s = userStates.get(userId);
-  if (s && Date.now() - s.lastActive < 30 * 60 * 1000) {
-    return s;
-  }
+  if (s && Date.now() - s.lastActive < 30 * 60 * 1000) return s;
   userStates.delete(userId);
   return null;
 }
-
-function setState(userId, step, answers) {
-  userStates.set(userId, { step, answers, lastActive: Date.now() });
+function setState(userId, data) {
+  userStates.set(userId, { ...data, lastActive: Date.now() });
 }
+function clearUserState(userId) { userStates.delete(userId); }
 
-function clearUserState(userId) {
-  userStates.delete(userId);
-}
-
-// Save to Google Sheets — only called ONCE at the end
 async function saveCandidate(answers) {
   try {
     await fetch(SCRIPT_URL, {
@@ -60,15 +46,12 @@ async function saveCandidate(answers) {
       headers: { "Content-Type": "text/plain;charset=UTF-8" },
       redirect: "follow",
     });
-  } catch (err) {
-    console.error("Save error:", err.message);
-  }
+  } catch (err) { console.error("Save error:", err.message); }
 }
 
 // ============================================================
-// QUICK REPLY HELPERS
+// HELPERS
 // ============================================================
-
 function qr(options, showCancel = true) {
   const items = options.map((o) => ({
     type: "action",
@@ -78,19 +61,16 @@ function qr(options, showCancel = true) {
   return { items };
 }
 
-const mainQR = {
-  items: [
-    { type: "action", action: { type: "message", label: "⚡ สมัครด่วน", text: "สมัครด่วน" } },
-    { type: "action", action: { type: "message", label: "✅ เคยสมัครแล้ว", text: "เคยสมัครแล้ว" } },
-    { type: "action", action: { type: "message", label: "💬 คุยกับรีครูทเตอร์", text: "คุยกับรีครูทเตอร์" } },
-    { type: "action", action: { type: "message", label: "ℹ️ ข้อมูลเพิ่มเติม", text: "ข้อมูลเพิ่มเติม" } },
-  ],
-};
+const mainQR = { items: [
+  { type: "action", action: { type: "message", label: "⚡ สมัครด่วน", text: "สมัครด่วน" } },
+  { type: "action", action: { type: "message", label: "✅ เคยสมัครแล้ว", text: "เคยสมัครแล้ว" } },
+  { type: "action", action: { type: "message", label: "💬 คุยกับรีครูทเตอร์", text: "คุยกับรีครูทเตอร์" } },
+  { type: "action", action: { type: "message", label: "ℹ️ ข้อมูลเพิ่มเติม", text: "ข้อมูลเพิ่มเติม" } },
+]};
 
 // ============================================================
-// 13-QUESTION FLOW
+// QUESTIONS — Thai & English versions
 // ============================================================
-
 const STEP_KEYS = {
   1: "name", 2: "phone", 3: "email", 4: "lineId", 5: "language",
   6: "proficiency", 7: "experience", 8: "education", 9: "employmentStatus",
@@ -98,115 +78,81 @@ const STEP_KEYS = {
 };
 const TOTAL = 13;
 
-function questionMsg(step, answers) {
-  const p = (n) => `(${n}/${TOTAL})`;
+const Q = {
+  th: {
+    1: { text: "👤 กรุณาพิมพ์ชื่อ-นามสกุลของคุณ", opts: [] },
+    2: { text: "📞 เบอร์โทรศัพท์ของคุณ", opts: [] },
+    3: { text: "✉️ อีเมลของคุณ", opts: [] },
+    4: { text: "🔗 LINE ID ของคุณ", opts: [] },
+    5: { text: "🗣️ คุณพูดภาษาอะไร?", opts: ["Japanese", "Korean", "Thai", "Vietnamese", "Bahasa Indonesia", "Mandarin", "Taiwanese", "English"] },
+    6: { text: "📈 ระดับความสามารถทางภาษา", opts: ["เริ่มต้น", "ปานกลาง", "ขั้นสูง", "เจ้าของภาษา"] },
+    7: { text: "⏳ ประสบการณ์ทำงาน", opts: ["ไม่มี", "น้อยกว่า 1 ปี", "1-3 ปี", "3-5 ปี", "มากกว่า 5 ปี"] },
+    8: { text: "📚 ระดับการศึกษา", opts: ["มัธยมปลาย", "อนุปริญญา", "ปริญญาตรี", "ปริญญาโท", "ปริญญาเอก"] },
+    9: { text: "💼 สถานะการทำงานปัจจุบัน", opts: ["ทำงานอยู่", "ว่างงาน", "นักศึกษา", "ฟรีแลนซ์"] },
+    10: { text: "🗓️ เริ่มงานได้เมื่อไหร่?", opts: ["ทันที", "2 สัปดาห์", "1 เดือน", "อื่นๆ"] },
+    11: { text: "💵 เงินเดือนที่คาดหวัง (บาท)\n\nพิมพ์จำนวนที่ต้องการ เช่น 25000", opts: [] },
+    12: { text: "🏙️ สามารถทำงานในกรุงเทพฯ ได้ไหม?", opts: ["ได้", "ไม่ได้"] },
+    13: { text: "💬 มีอะไรเพิ่มเติมที่อยากบอกเราไหม?", opts: ["ไม่มี"] },
+  },
+  en: {
+    1: { text: "👤 Please type your full name", opts: [] },
+    2: { text: "📞 Your phone number", opts: [] },
+    3: { text: "✉️ Your email address", opts: [] },
+    4: { text: "🔗 Your LINE ID", opts: [] },
+    5: { text: "🗣️ What language do you speak?", opts: ["Japanese", "Korean", "Thai", "Vietnamese", "Bahasa Indonesia", "Mandarin", "Taiwanese", "English"] },
+    6: { text: "📈 Language proficiency level", opts: ["Beginner", "Intermediate", "Advanced", "Native"] },
+    7: { text: "⏳ Work experience", opts: ["None", "< 1 year", "1-3 years", "3-5 years", "5+ years"] },
+    8: { text: "📚 Education level", opts: ["High School", "Diploma", "Bachelor's", "Master's", "PhD"] },
+    9: { text: "💼 Current employment status", opts: ["Employed", "Unemployed", "Student", "Freelance"] },
+    10: { text: "🗓️ When can you start?", opts: ["Immediately", "2 weeks", "1 month", "Other"] },
+    11: { text: "💵 Expected salary (THB)\n\nType your expected amount e.g. 25000", opts: [] },
+    12: { text: "🏙️ Willing to work in Bangkok?", opts: ["Yes", "No"] },
+    13: { text: "💬 Anything else you'd like us to know?", opts: ["None"] },
+  },
+};
 
-  switch (step) {
-    case 1: return {
-      type: "text",
-      text: `⚡ สมัครด่วน ${p(1)}\n\n👤 ชื่อ-นามสกุล / Full Name:`,
-      quickReply: qr([]),
-    };
-    case 2: return {
-      type: "text",
-      text: `📱 ${p(2)}\n\n📞 เบอร์โทรศัพท์ / Phone Number:`,
-      quickReply: qr([]),
-    };
-    case 3: return {
-      type: "text",
-      text: `📧 ${p(3)}\n\n✉️ อีเมล / Email:`,
-      quickReply: qr([]),
-    };
-    case 4: return {
-      type: "text",
-      text: `💬 ${p(4)}\n\n🔗 LINE ID ของคุณ / Your LINE ID:`,
-      quickReply: qr([]),
-    };
-    case 5: return {
-      type: "text",
-      text: `🌐 ${p(5)}\n\n🗣️ คุณพูดภาษาอะไร? / What language do you speak?`,
-      quickReply: qr(["Japanese", "Korean", "Thai", "Vietnamese", "Bahasa Indonesia", "Mandarin", "Taiwanese", "English"]),
-    };
-    case 6: return {
-      type: "text",
-      text: `📊 ${p(6)}\n\n📈 ระดับความสามารถทางภาษา / Language Proficiency:`,
-      quickReply: qr(["Beginner", "Intermediate", "Advanced", "Native"]),
-    };
-    case 7: return {
-      type: "text",
-      text: `📋 ${p(7)}\n\n⏳ ประสบการณ์ทำงาน / Work Experience:`,
-      quickReply: qr(["ไม่มี / None", "< 1 ปี / < 1 year", "1-3 ปี / 1-3 years", "3-5 ปี / 3-5 years", "5+ ปี / 5+ years"]),
-    };
-    case 8: return {
-      type: "text",
-      text: `🎓 ${p(8)}\n\n📚 ระดับการศึกษา / Education:`,
-      quickReply: qr(["มัธยมปลาย / High School", "อนุปริญญา / Diploma", "ปริญญาตรี / Bachelor's", "ปริญญาโท / Master's", "ปริญญาเอก / PhD"]),
-    };
-    case 9: return {
-      type: "text",
-      text: `👔 ${p(9)}\n\n💼 สถานะการทำงานปัจจุบัน / Employment Status:`,
-      quickReply: qr(["ทำงานอยู่ / Employed", "ว่างงาน / Unemployed", "นักศึกษา / Student", "ฟรีแลนซ์ / Freelance"]),
-    };
-    case 10: return {
-      type: "text",
-      text: `📅 ${p(10)}\n\n🗓️ เริ่มงานได้เมื่อไหร่? / Available Start Date:`,
-      quickReply: qr(["ทันที / Immediately", "2 สัปดาห์ / 2 weeks", "1 เดือน / 1 month", "อื่นๆ / Other"]),
-    };
-    case 11: return {
-      type: "text",
-      text: `💰 ${p(11)}\n\n💵 เงินเดือนที่คาดหวัง (บาท) / Expected Salary (THB):\n\nพิมพ์จำนวนที่ต้องการ เช่น 25000\nType your expected amount e.g. 25000`,
-      quickReply: qr([]),
-    };
-    case 12: return {
-      type: "text",
-      text: `📍 ${p(12)}\n\n🏙️ สามารถทำงานในกรุงเทพฯ ได้ไหม?\nWilling to work in Bangkok?`,
-      quickReply: qr(["ได้ / Yes", "ไม่ได้ / No"]),
-    };
-    case 13: return {
-      type: "text",
-      text: `📝 ${p(13)} คำถามสุดท้าย!\n\n💬 มีอะไรเพิ่มเติมที่อยากบอกเราไหม?\nAnything else you'd like us to know?`,
-      quickReply: qr(["ไม่มี / None"]),
-    };
-    default: return null;
-  }
-}
-
-function summaryRow(icon, label, val) {
-  return { type: "box", layout: "horizontal", margin: "sm", contents: [
-    { type: "text", text: icon + " " + label + ":", size: "xs", color: "#888888", flex: 4 },
-    { type: "text", text: val || "-", size: "xs", color: "#444444", flex: 6, wrap: true },
-  ]};
-}
-
-function completionFlex(answers) {
+function questionMsg(step, lang) {
+  const q = Q[lang][step];
+  if (!q) return null;
   return {
-    type: "flex", altText: "สมัครสำเร็จ! / Application submitted!",
-    contents: { type: "bubble", size: "mega",
-      header: { type: "box", layout: "vertical", contents: [
-        { type: "text", text: "✅ สมัครสำเร็จ!", weight: "bold", size: "xl", color: "#FFFFFF" },
-        { type: "text", text: "Application Submitted!", size: "md", color: "#FFFFFFCC", margin: "xs" },
-      ], backgroundColor: "#27AE60", paddingAll: "20px" },
-      body: { type: "box", layout: "vertical", contents: [
-        { type: "text", text: "ขอบคุณค่ะ " + (answers.name || "") + "! 🎉", weight: "bold", size: "md", wrap: true },
-        { type: "text", text: "ขอบคุณที่สนใจร่วมงานกับ TP Thailand!", size: "sm", color: "#888888", margin: "sm", wrap: true },
-        { type: "separator", margin: "lg" },
-        summaryRow("👤", "ชื่อ", answers.name),
-        summaryRow("📞", "โทร", answers.phone),
-        summaryRow("✉️", "อีเมล", answers.email),
-        summaryRow("🌐", "ภาษา", answers.language),
-        summaryRow("💰", "เงินเดือน", answers.salary),
-        { type: "separator", margin: "lg" },
-        { type: "text", text: "ทีมสรรหาจะติดต่อคุณเร็วๆ นี้ค่ะ\nOur team will contact you soon!", size: "sm", color: "#666666", margin: "lg", wrap: true },
-      ], paddingAll: "20px" },
-      footer: { type: "box", layout: "vertical", contents: [
-        { type: "button", style: "primary", color: TP_DARK, action: { type: "message", label: "🏠 กลับเมนูหลัก / Main Menu", text: "สวัสดี" } },
-      ], paddingAll: "10px" },
-    },
+    type: "text",
+    text: `(${step}/${TOTAL}) ${q.text}`,
+    quickReply: qr(q.opts),
   };
 }
 
 // ============================================================
-// MENU FLEX MESSAGES
+// VALIDATION
+// ============================================================
+function validate(step, value, lang) {
+  const v = value.trim();
+  if (step === 2) { // Phone
+    const digits = v.replace(/[\s\-\+\(\)]/g, "");
+    if (digits.length < 8 || !/^\d+$/.test(digits)) {
+      return lang === "th"
+        ? "📞 \"" + v + "\" ไม่เหมือนเบอร์โทรศัพท์\nคุณแน่ใจไหม?"
+        : "📞 \"" + v + "\" doesn't look like a phone number.\nAre you sure?";
+    }
+  }
+  if (step === 3) { // Email
+    if (!v.includes("@") || !v.includes(".")) {
+      return lang === "th"
+        ? "✉️ \"" + v + "\" ไม่เหมือนอีเมล\nคุณแน่ใจไหม?"
+        : "✉️ \"" + v + "\" doesn't look like an email.\nAre you sure?";
+    }
+  }
+  if (step === 1) { // Name
+    if (v.length < 2) {
+      return lang === "th"
+        ? "👤 ชื่อสั้นเกินไป กรุณาพิมพ์ชื่อ-นามสกุลเต็ม"
+        : "👤 Name too short. Please type your full name.";
+    }
+  }
+  return null; // valid
+}
+
+// ============================================================
+// FLEX MESSAGES
 // ============================================================
 
 function welcomeFlex() {
@@ -219,42 +165,58 @@ function welcomeFlex() {
       ], paddingAll: "20px", backgroundColor: "#F8F8FF" },
       body: { type: "box", layout: "vertical", contents: [
         { type: "text", text: "สวัสดีค่ะ! ยินดีต้อนรับ!", weight: "bold", size: "lg", margin: "md" },
-        { type: "text", text: "ยินดีต้อนรับสู่ TP Thailand\nWelcome! How can we help you?", size: "sm", color: "#666666", margin: "md", wrap: true },
+        { type: "text", text: "Welcome to TP Thailand!", size: "sm", color: "#666666", margin: "md", wrap: true },
         { type: "separator", margin: "xl" },
         { type: "text", text: "เลือกเมนูด้านล่าง / Choose below:", size: "sm", color: "#888888", margin: "lg" },
       ], paddingAll: "20px" },
       footer: { type: "box", layout: "vertical", spacing: "sm", contents: [
         { type: "button", style: "primary", color: TP_PINK, action: { type: "message", label: "⚡ สมัครด่วน / Quick Apply", text: "สมัครด่วน" } },
         { type: "button", style: "primary", color: TP_DARK, action: { type: "message", label: "✅ เคยสมัครแล้ว / Already Applied", text: "เคยสมัครแล้ว" } },
-        { type: "button", style: "secondary", action: { type: "message", label: "💬 คุยกับรีครูทเตอร์ / Talk to Recruiter", text: "คุยกับรีครูทเตอร์" } },
+        { type: "button", style: "secondary", action: { type: "message", label: "💬 คุยกับรีครูทเตอร์ / Recruiter", text: "คุยกับรีครูทเตอร์" } },
         { type: "button", style: "secondary", action: { type: "message", label: "ℹ️ ข้อมูลเพิ่มเติม / More Info", text: "ข้อมูลเพิ่มเติม" } },
       ], paddingAll: "15px" },
     }, quickReply: mainQR,
   };
 }
 
+function langSelectFlex() {
+  return {
+    type: "flex", altText: "เลือกภาษา / Choose Language",
+    contents: { type: "bubble", size: "mega",
+      header: { type: "box", layout: "vertical", contents: [
+        { type: "text", text: "⚡ สมัครด่วน / Quick Apply", weight: "bold", size: "lg", color: "#FFFFFF" },
+      ], backgroundColor: TP_PINK, paddingAll: "20px" },
+      body: { type: "box", layout: "vertical", contents: [
+        { type: "text", text: "กรุณาเลือกภาษาสำหรับแบบฟอร์ม", weight: "bold", size: "md", wrap: true },
+        { type: "text", text: "Please choose your preferred language", size: "sm", color: "#888888", margin: "sm", wrap: true },
+      ], paddingAll: "20px" },
+      footer: { type: "box", layout: "horizontal", spacing: "md", contents: [
+        { type: "button", style: "primary", color: TP_DARK, action: { type: "message", label: "🇹🇭 ภาษาไทย", text: "ภาษาไทย" } },
+        { type: "button", style: "primary", color: TP_DARK, action: { type: "message", label: "🇬🇧 English", text: "English form" } },
+      ], paddingAll: "15px" },
+    },
+  };
+}
+
 function assessmentFlex() {
   const data = loadData();
   return {
-    type: "flex", altText: "แบบทดสอบภาษา / Language Assessment",
+    type: "flex", altText: "แบบทดสอบภาษา",
     contents: { type: "bubble", size: "mega",
       header: { type: "box", layout: "vertical", contents: [
         { type: "text", text: "📋 แบบทดสอบภาษา", weight: "bold", size: "lg", color: "#FFFFFF" },
         { type: "text", text: "Language Assessment", size: "md", color: "#FFFFFFCC", margin: "xs" },
       ], backgroundColor: TP_DARK, paddingAll: "20px" },
       body: { type: "box", layout: "vertical", contents: [
-        { type: "text", text: "ยินดีต้อนรับกลับมาค่ะ! 🎉", weight: "bold", size: "md" },
-        { type: "text", text: "Welcome back!", size: "sm", color: "#888888", margin: "xs" },
+        { type: "text", text: "ยินดีต้อนรับกลับมาค่ะ! 🎉\nWelcome back!", weight: "bold", size: "md", wrap: true },
         { type: "separator", margin: "lg" },
-        { type: "text", text: "กรุณาทำแบบทดสอบภาษาเพื่อดำเนินการต่อ\nPlease complete the assessment to proceed.", size: "sm", color: "#666666", margin: "lg", wrap: true },
-        { type: "separator", margin: "lg" },
+        { type: "text", text: "กรุณาทำแบบทดสอบภาษาเพื่อดำเนินการต่อ\nPlease complete the assessment.", size: "sm", color: "#666", margin: "lg", wrap: true },
         { type: "text", text: "💻 แนะนำให้ทำบน PC / Best on PC", weight: "bold", size: "xs", color: TP_PINK, margin: "lg" },
-        { type: "text", text: "กด 'คัดลอกลิงก์' เพื่อเปิดบน PC", size: "xs", color: "#888888", margin: "sm", wrap: true },
       ], paddingAll: "20px" },
       footer: { type: "box", layout: "vertical", spacing: "sm", contents: [
         { type: "button", style: "primary", color: TP_PINK, action: { type: "uri", label: "🚀 เริ่มทำแบบทดสอบ / Start", uri: data.assessment_url } },
         { type: "button", style: "secondary", action: { type: "message", label: "📋 คัดลอกลิงก์ / Copy Link", text: "คัดลอกลิงก์" } },
-        { type: "button", style: "secondary", action: { type: "message", label: "🏠 กลับเมนูหลัก / Main Menu", text: "สวัสดี" } },
+        { type: "button", style: "secondary", action: { type: "message", label: "🏠 เมนู / Menu", text: "สวัสดี" } },
       ], paddingAll: "15px" },
     },
   };
@@ -262,58 +224,47 @@ function assessmentFlex() {
 
 function assessmentLinkText() {
   const data = loadData();
-  return {
-    type: "text",
-    text: "📋 ลิงก์แบบทดสอบภาษา / Assessment Link:\n\n💻 แนะนำให้เปิดบน PC / Best on PC:\n\n" + data.assessment_url + "\n\n👆 กดค้างเพื่อคัดลอก / Long press to copy",
-    quickReply: mainQR,
-  };
+  return { type: "text", text: "📋 ลิงก์แบบทดสอบภาษา:\n\n💻 แนะนำเปิดบน PC:\n\n" + data.assessment_url + "\n\n👆 กดค้างเพื่อคัดลอก / Long press to copy", quickReply: mainQR };
 }
 
-function talkToRecruiterFlex() {
+function recruiterFlex() {
   return {
-    type: "flex", altText: "คุยกับรีครูทเตอร์ / Talk to Recruiter",
+    type: "flex", altText: "คุยกับรีครูทเตอร์",
     contents: { type: "bubble", size: "mega",
       header: { type: "box", layout: "vertical", contents: [
         { type: "text", text: "💬 คุยกับรีครูทเตอร์", weight: "bold", size: "lg", color: "#FFFFFF" },
         { type: "text", text: "Talk to a Recruiter", size: "md", color: "#FFFFFFCC", margin: "xs" },
       ], backgroundColor: "#2980B9", paddingAll: "20px" },
       body: { type: "box", layout: "vertical", contents: [
-        { type: "text", text: "ทีมสรรหาของเราพร้อมช่วยคุณค่ะ! 😊", weight: "bold", size: "md", wrap: true },
-        { type: "text", text: "Our recruitment team is here to help!", size: "sm", color: "#888888", margin: "sm", wrap: true },
+        { type: "text", text: "พิมพ์ข้อความได้เลยค่ะ รีครูทเตอร์จะตอบกลับโดยเร็วที่สุด 😊", size: "sm", color: "#666", margin: "md", wrap: true },
+        { type: "text", text: "Type your message. A recruiter will reply soon.", size: "sm", color: "#888", margin: "sm", wrap: true },
+        { type: "text", text: "คุณสามารถส่งเรซูเม่หรือเอกสารได้ที่นี่เลยค่ะ\nYou can also send your resume here.", size: "sm", color: "#888", margin: "md", wrap: true },
         { type: "separator", margin: "lg" },
-        { type: "text", text: "คุณสามารถพิมพ์ข้อความได้เลยที่แชทนี้ รีครูทเตอร์จะตอบกลับคุณโดยเร็วที่สุดค่ะ", size: "sm", color: "#666666", margin: "lg", wrap: true },
-        { type: "text", text: "Type your message here. A recruiter will reply as soon as possible.", size: "sm", color: "#888888", margin: "md", wrap: true },
-        { type: "separator", margin: "lg" },
-        { type: "text", text: "⏰ เวลาทำการ / Office Hours:", weight: "bold", size: "sm", margin: "lg" },
-        { type: "text", text: "จันทร์-ศุกร์ 09:00 - 18:00\nMon-Fri 09:00 - 18:00 (ICT)", size: "sm", color: "#666666", margin: "sm", wrap: true },
+        { type: "text", text: "⏰ จันทร์-ศุกร์ 09:00-18:00 (ICT)", size: "xs", color: "#AAA", margin: "lg" },
+        { type: "text", text: "พิมพ์ 'เมนู' เพื่อกลับ / Type 'menu' to go back", size: "xs", color: "#AAA", margin: "sm" },
       ], paddingAll: "20px" },
-      footer: { type: "box", layout: "vertical", contents: [
-        { type: "button", style: "primary", color: TP_DARK, action: { type: "message", label: "🏠 กลับเมนูหลัก / Main Menu", text: "สวัสดี" } },
-      ], paddingAll: "10px" },
     },
+    quickReply: { items: [{ type: "action", action: { type: "message", label: "🏠 เมนู / Menu", text: "สวัสดี" } }] },
   };
 }
 
 function infoFlex() {
   return {
-    type: "flex", altText: "ข้อมูลเพิ่มเติม / More Info",
+    type: "flex", altText: "ข้อมูลเพิ่มเติม",
     contents: { type: "bubble", size: "mega",
       header: { type: "box", layout: "vertical", contents: [
-        { type: "text", text: "ℹ️ ข้อมูลเพิ่มเติม", weight: "bold", size: "lg", color: "#FFFFFF" },
-        { type: "text", text: "More Information", size: "md", color: "#FFFFFFCC", margin: "xs" },
+        { type: "text", text: "ℹ️ ข้อมูลเพิ่มเติม / More Info", weight: "bold", size: "lg", color: "#FFFFFF" },
       ], backgroundColor: TP_DARK, paddingAll: "20px" },
       body: { type: "box", layout: "vertical", spacing: "md", contents: [
-        { type: "text", text: "❓ เกี่ยวกับ TP / About TP", weight: "bold", size: "sm" },
-        { type: "text", text: "TP เป็นผู้นำระดับโลกด้าน Digital Business Services มีพนักงานกว่า 500,000 คนใน 100+ ประเทศ", size: "sm", color: "#666", wrap: true },
+        { type: "text", text: "❓ เกี่ยวกับ TP", weight: "bold", size: "sm" },
+        { type: "text", text: "TP เป็นผู้นำระดับโลกด้าน Digital Business Services พนักงาน 500,000+ คน ใน 100+ ประเทศ", size: "sm", color: "#666", wrap: true },
         { type: "separator" },
-        { type: "text", text: "🎓 ต้องมีประสบการณ์ไหม?", weight: "bold", size: "sm" },
-        { type: "text", text: "ไม่จำเป็น! เรามีการฝึกอบรมให้ทุกตำแหน่ง\nNo experience needed! Full training provided.", size: "sm", color: "#666", wrap: true },
+        { type: "text", text: "🎓 ไม่ต้องมีประสบการณ์ มีฝึกอบรมให้", weight: "bold", size: "sm" },
         { type: "separator" },
-        { type: "text", text: "📍 สถานที่ / Location", weight: "bold", size: "sm" },
-        { type: "text", text: "กรุงเทพมหานคร (ใกล้ BTS, มีที่จอดรถ)\nBangkok (near BTS, parking available)", size: "sm", color: "#666", wrap: true },
+        { type: "text", text: "📍 กรุงเทพฯ (ใกล้ BTS, มีที่จอดรถ)", weight: "bold", size: "sm" },
         { type: "separator" },
-        { type: "text", text: "🎁 สวัสดิการ / Benefits", weight: "bold", size: "sm" },
-        { type: "text", text: "💰 เงินเดือนแข่งขันได้\n🏥 ประกันสังคม + ประกันกลุ่ม\n🎯 โบนัสประจำปี\n📚 ฝึกอบรมฟรี\n📈 โอกาสเติบโต\n🌍 สภาพแวดล้อมระดับสากล", size: "sm", color: "#666", wrap: true },
+        { type: "text", text: "🎁 สวัสดิการ", weight: "bold", size: "sm" },
+        { type: "text", text: "💰 เงินเดือนแข่งขันได้  🏥 ประกันกลุ่ม\n🎯 โบนัสประจำปี  📚 ฝึกอบรมฟรี\n📈 โอกาสเติบโต  🌍 สภาพแวดล้อมสากล", size: "sm", color: "#666", wrap: true },
       ], paddingAll: "20px" },
       footer: { type: "box", layout: "vertical", contents: [
         { type: "button", style: "primary", color: TP_PINK, action: { type: "message", label: "⚡ สมัครด่วน / Quick Apply", text: "สมัครด่วน" } },
@@ -322,82 +273,180 @@ function infoFlex() {
   };
 }
 
+function summaryRow(icon, label, val) {
+  return { type: "box", layout: "horizontal", margin: "sm", contents: [
+    { type: "text", text: icon + " " + label, size: "xs", color: "#888", flex: 4 },
+    { type: "text", text: val || "-", size: "xs", color: "#444", flex: 6, wrap: true },
+  ]};
+}
+
+function completionFlex(answers) {
+  return {
+    type: "flex", altText: "สมัครสำเร็จ!",
+    contents: { type: "bubble", size: "mega",
+      header: { type: "box", layout: "vertical", contents: [
+        { type: "text", text: "✅ สมัครสำเร็จ!", weight: "bold", size: "xl", color: "#FFF" },
+        { type: "text", text: "Application Submitted!", size: "md", color: "#FFFFFFCC", margin: "xs" },
+      ], backgroundColor: "#27AE60", paddingAll: "20px" },
+      body: { type: "box", layout: "vertical", contents: [
+        { type: "text", text: "ขอบคุณค่ะ " + (answers.name || "") + "! 🎉", weight: "bold", size: "md", wrap: true },
+        { type: "separator", margin: "lg" },
+        summaryRow("👤", "ชื่อ:", answers.name),
+        summaryRow("📞", "โทร:", answers.phone),
+        summaryRow("✉️", "อีเมล:", answers.email),
+        summaryRow("🌐", "ภาษา:", answers.language),
+        summaryRow("💰", "เงินเดือน:", answers.salary),
+        { type: "separator", margin: "lg" },
+        { type: "text", text: "ทีมสรรหาจะติดต่อคุณเร็วๆ นี้ค่ะ\nOur team will contact you soon!", size: "sm", color: "#666", margin: "lg", wrap: true },
+      ], paddingAll: "20px" },
+      footer: { type: "box", layout: "vertical", contents: [
+        { type: "button", style: "primary", color: TP_DARK, action: { type: "message", label: "🏠 เมนู / Menu", text: "สวัสดี" } },
+      ], paddingAll: "10px" },
+    },
+  };
+}
+
+// ============================================================
+// MENU COMMAND CHECK
+// ============================================================
+function isMenuCommand(msg) {
+  return (
+    msg.includes("สวัสดี") || msg.includes("hello") || msg.includes("hi") ||
+    msg === "start" || msg === "menu" || msg.includes("เมนู") ||
+    msg.includes("สมัครด่วน") || msg.includes("quick apply") ||
+    msg.includes("เคยสมัคร") || msg.includes("already applied") ||
+    msg.includes("คัดลอกลิงก์") || msg.includes("copy link") ||
+    msg.includes("คุยกับรีครูทเตอร์") || msg.includes("talk to recruiter") ||
+    msg.includes("ข้อมูลเพิ่มเติม") || msg.includes("more info") ||
+    msg.includes("faq") || msg.includes("benefit") || msg.includes("สวัสดิการ") ||
+    msg.includes("info") || msg.includes("location") || msg.includes("สถานที่") ||
+    msg === "cancel" || msg.includes("ยกเลิก")
+  );
+}
+
 // ============================================================
 // MAIN HANDLER
 // ============================================================
-
 async function handleMessage(userId, text) {
   const msg = text.toLowerCase().trim();
 
   // --- Cancel ---
   if (msg === "cancel" || msg.includes("cancel") || msg.includes("ยกเลิก")) {
     clearUserState(userId);
-    return [{ type: "text", text: "❌ ยกเลิกแล้วค่ะ / Cancelled.\n\nพิมพ์ 'สวัสดี' เพื่อกลับเมนูหลัก\nType 'Hi' for main menu", quickReply: mainQR }];
+    return [{ type: "text", text: "❌ ยกเลิกแล้วค่ะ / Cancelled.", quickReply: mainQR }];
   }
 
-  // --- Quick Apply flow (all in memory — instant!) ---
   const state = getState(userId);
 
-  if (state && state.step > 0 && state.step <= TOTAL) {
+  // --- CONFIRMATION step (after validation warning) ---
+  if (state && state.mode === "confirm") {
+    if (msg.includes("ใช่") || msg.includes("yes") || msg === "ใช่" || msg === "yes") {
+      // Keep the answer, move to next step
+      const nextStep = state.step + 1;
+      if (state.step >= TOTAL) {
+        await saveCandidate(state.answers);
+        const a = { ...state.answers };
+        clearUserState(userId);
+        return [completionFlex(a)];
+      }
+      setState(userId, { mode: "apply", step: nextStep, answers: state.answers, lang: state.lang });
+      return [questionMsg(nextStep, state.lang)];
+    } else {
+      // Re-ask the same question
+      setState(userId, { mode: "apply", step: state.step, answers: state.answers, lang: state.lang });
+      // Remove the bad answer
+      delete state.answers[STEP_KEYS[state.step]];
+      return [questionMsg(state.step, state.lang)];
+    }
+  }
+
+  // --- QUICK APPLY flow ---
+  if (state && state.mode === "apply" && state.step > 0 && state.step <= TOTAL) {
     const key = STEP_KEYS[state.step];
     state.answers[key] = text;
 
-    if (state.step >= TOTAL) {
-      // Done! Save ALL answers to Google Sheets in ONE call
-      await saveCandidate(state.answers);
-      const answers = { ...state.answers };
-      clearUserState(userId);
-      return [completionFlex(answers)];
+    // Validate
+    const warning = validate(state.step, text, state.lang);
+    if (warning) {
+      setState(userId, { mode: "confirm", step: state.step, answers: state.answers, lang: state.lang });
+      const yesNo = state.lang === "th" ? ["ใช่", "ไม่ใช่ (พิมพ์ใหม่)"] : ["Yes", "No (retype)"];
+      return [{ type: "text", text: warning, quickReply: qr(yesNo, false) }];
     }
 
-    // Advance to next question (in memory only — instant)
+    if (state.step >= TOTAL) {
+      await saveCandidate(state.answers);
+      const a = { ...state.answers };
+      clearUserState(userId);
+      return [completionFlex(a)];
+    }
+
     const nextStep = state.step + 1;
-    setState(userId, nextStep, state.answers);
-    return [questionMsg(nextStep, state.answers)];
+    setState(userId, { mode: "apply", step: nextStep, answers: state.answers, lang: state.lang });
+    return [questionMsg(nextStep, state.lang)];
   }
 
-  // --- Menu ---
-  if (msg.includes("สวัสดี") || msg.includes("hello") || msg.includes("hi") || msg === "start" || msg.includes("menu") || msg.includes("เมนู")) {
+  // --- LANGUAGE SELECTION for Quick Apply ---
+  if (state && state.mode === "lang_select") {
+    let lang = "th";
+    if (msg.includes("english") || msg.includes("en")) lang = "en";
+    setState(userId, { mode: "apply", step: 1, answers: {}, lang });
+    const intro = lang === "th"
+      ? "📝 13 คำถาม ใช้เวลาประมาณ 2 นาที\nพิมพ์ 'cancel' เพื่อยกเลิก"
+      : "📝 13 questions, about 2 minutes\nType 'cancel' to stop";
+    return [
+      { type: "text", text: "⚡ " + intro },
+      questionMsg(1, lang),
+    ];
+  }
+
+  // --- RECRUITER mode: bot silent ---
+  if (state && state.mode === "recruiter") {
+    if (isMenuCommand(msg)) {
+      clearUserState(userId);
+    } else {
+      return null; // silent
+    }
+  }
+
+  // --- MENU NAVIGATION ---
+  if (msg.includes("สวัสดี") || msg.includes("hello") || msg.includes("hi") || msg === "start" || msg === "menu" || msg.includes("เมนู")) {
+    clearUserState(userId);
     return [welcomeFlex()];
   }
 
   if (msg.includes("สมัครด่วน") || msg.includes("quick apply")) {
-    setState(userId, 1, {});
-    return [
-      { type: "text", text: "⚡ เริ่มสมัครด่วน!\n\n📝 13 คำถาม ใช้เวลาประมาณ 2 นาที\n13 questions, about 2 minutes\n\nพิมพ์ 'cancel' เพื่อยกเลิกได้ตลอด\nType 'cancel' to stop anytime" },
-      questionMsg(1, {}),
-    ];
+    setState(userId, { mode: "lang_select", step: 0, answers: {} });
+    return [langSelectFlex()];
   }
 
   if (msg.includes("เคยสมัคร") || msg.includes("already applied")) {
     return [assessmentFlex()];
   }
 
-  if (msg.includes("คัดลอกลิงก์") || msg.includes("copy link") || msg.includes("assessment link")) {
+  if (msg.includes("คัดลอกลิงก์") || msg.includes("copy link")) {
     return [assessmentLinkText()];
   }
 
   if (msg.includes("คุยกับรีครูทเตอร์") || msg.includes("talk to recruiter") || msg.includes("recruiter") || msg.includes("รีครูท")) {
-    return [talkToRecruiterFlex()];
+    setState(userId, { mode: "recruiter", step: 0, answers: {} });
+    return [recruiterFlex()];
   }
 
   if (msg.includes("ข้อมูลเพิ่มเติม") || msg.includes("more info") || msg.includes("info") || msg.includes("faq") || msg.includes("benefit") || msg.includes("สวัสดิการ") || msg.includes("location") || msg.includes("สถานที่")) {
     return [infoFlex()];
   }
 
-  return [welcomeFlex()];
+  // --- DEFAULT: stay silent (no auto-menu) ---
+  return null;
 }
 
 // ============================================================
 // WEBHOOK
 // ============================================================
-
 module.exports = async (req, res) => {
   if (req.method === "GET") return res.status(200).send("TP Thailand LINE Bot 🇹🇭");
-
   const sig = req.headers["x-line-signature"];
   if (!sig || !verifySignature(req.body, sig)) return res.status(401).json({ error: "Invalid" });
-
   const events = req.body.events || [];
   if (!events.length) return res.status(200).json({ ok: true });
 
@@ -407,12 +456,11 @@ module.exports = async (req, res) => {
         await client.replyMessage({ replyToken: event.replyToken, messages: [welcomeFlex()] });
       } else if (event.type === "message" && event.message.type === "text") {
         const replies = await handleMessage(event.source.userId, event.message.text);
-        await client.replyMessage({ replyToken: event.replyToken, messages: replies.slice(0, 5) });
+        if (replies && replies.length > 0) {
+          await client.replyMessage({ replyToken: event.replyToken, messages: replies.slice(0, 5) });
+        }
       }
-    } catch (err) {
-      console.error("Event error:", err.message);
-    }
+    } catch (err) { console.error("Error:", err.message); }
   }
-
   res.status(200).json({ ok: true });
 };
