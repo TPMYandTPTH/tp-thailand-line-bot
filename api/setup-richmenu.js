@@ -7,31 +7,59 @@ const LINE_DATA = "https://api-data.line.me/v2/bot";
 function createMenuSVG() {
   const w = 2500, h = 1686;
   const cw = Math.floor(w / 3), ch = Math.floor(h / 2);
+  const gap = 6;
 
   const cells = [
-    { x: 0, y: 0, bg: "#FF0082", icon: "⚡", line1: "Quick Apply", line2: "สมัครด่วน" },
-    { x: cw, y: 0, bg: "#4B4C6A", icon: "📋", line1: "Browse Jobs", line2: "ดูตำแหน่งงาน" },
-    { x: cw*2, y: 0, bg: "#3D3E5C", icon: "✅", line1: "Already Applied", line2: "เคยสมัครแล้ว" },
-    { x: 0, y: ch, bg: "#2E2F4A", icon: "❓", line1: "FAQ", line2: "คำถามที่พบบ่อย" },
-    { x: cw, y: ch, bg: "#2E2F4A", icon: "📍", line1: "Location", line2: "สถานที่ทำงาน" },
-    { x: cw*2, y: ch, bg: "#2E2F4A", icon: "🎁", line1: "Benefits", line2: "สวัสดิการ" },
+    { x: 0, y: 0, bg: "#FF0082", en: "QUICK APPLY", th: "สมัครด่วน", icon: "star" },
+    { x: cw, y: 0, bg: "#4B4C6A", en: "BROWSE JOBS", th: "ดูตำแหน่งงาน", icon: "list" },
+    { x: cw*2, y: 0, bg: "#5C5D7A", en: "ALREADY APPLIED", th: "เคยสมัครแล้ว", icon: "check" },
+    { x: 0, y: ch, bg: "#3A3B55", en: "FAQ", th: "คำถามที่พบบ่อย", icon: "question" },
+    { x: cw, y: ch, bg: "#3A3B55", en: "LOCATION", th: "สถานที่ทำงาน", icon: "pin" },
+    { x: cw*2, y: ch, bg: "#3A3B55", en: "BENEFITS", th: "สวัสดิการ", icon: "gift" },
   ];
 
-  const rects = cells.map(c => `
-    <rect x="${c.x}" y="${c.y}" width="${cw}" height="${ch}" fill="${c.bg}"/>
-    <text x="${c.x + cw/2}" y="${c.y + ch/2 - 80}" text-anchor="middle" font-size="120" fill="white">${c.icon}</text>
-    <text x="${c.x + cw/2}" y="${c.y + ch/2 + 40}" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="72" font-weight="bold" fill="white">${c.line1}</text>
-    <text x="${c.x + cw/2}" y="${c.y + ch/2 + 130}" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="56" fill="rgba(255,255,255,0.7)">${c.line2}</text>
-  `).join("");
+  function iconSVG(type, cx, cy) {
+    const s = 70;
+    switch(type) {
+      case "star":
+        return `<polygon points="${cx},${cy-s} ${cx+s*0.22},${cy-s*0.31} ${cx+s*0.95},${cy-s*0.31} ${cx+s*0.36},${cy+s*0.12} ${cx+s*0.59},${cy+s*0.81} ${cx},${cy+s*0.38} ${cx-s*0.59},${cy+s*0.81} ${cx-s*0.36},${cy+s*0.12} ${cx-s*0.95},${cy-s*0.31} ${cx-s*0.22},${cy-s*0.31}" fill="rgba(255,255,255,0.9)"/>`;
+      case "list":
+        return `
+          <rect x="${cx-45}" y="${cy-50}" width="90" height="16" rx="4" fill="rgba(255,255,255,0.9)"/>
+          <rect x="${cx-45}" y="${cy-18}" width="70" height="16" rx="4" fill="rgba(255,255,255,0.7)"/>
+          <rect x="${cx-45}" y="${cy+14}" width="90" height="16" rx="4" fill="rgba(255,255,255,0.9)"/>
+          <rect x="${cx-45}" y="${cy+46}" width="55" height="16" rx="4" fill="rgba(255,255,255,0.7)"/>`;
+      case "check":
+        return `<polyline points="${cx-40},${cy} ${cx-8},${cy+35} ${cx+45},${cy-35}" fill="none" stroke="rgba(255,255,255,0.9)" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>`;
+      case "question":
+        return `<text x="${cx}" y="${cy+30}" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="120" font-weight="bold" fill="rgba(255,255,255,0.9)">?</text>`;
+      case "pin":
+        return `<circle cx="${cx}" cy="${cy-15}" r="28" fill="none" stroke="rgba(255,255,255,0.9)" stroke-width="12"/>
+                <line x1="${cx}" y1="${cy+13}" x2="${cx}" y2="${cy+55}" stroke="rgba(255,255,255,0.9)" stroke-width="12" stroke-linecap="round"/>`;
+      case "gift":
+        return `
+          <rect x="${cx-45}" y="${cy-10}" width="90" height="60" rx="8" fill="none" stroke="rgba(255,255,255,0.9)" stroke-width="10"/>
+          <rect x="${cx-55}" y="${cy-30}" width="110" height="30" rx="6" fill="none" stroke="rgba(255,255,255,0.9)" stroke-width="10"/>
+          <line x1="${cx}" y1="${cy-30}" x2="${cx}" y2="${cy+50}" stroke="rgba(255,255,255,0.9)" stroke-width="8"/>`;
+      default: return "";
+    }
+  }
 
-  // Add thin grid lines between cells
-  const lines = `
-    <line x1="${cw}" y1="0" x2="${cw}" y2="${h}" stroke="rgba(255,255,255,0.15)" stroke-width="4"/>
-    <line x1="${cw*2}" y1="0" x2="${cw*2}" y2="${h}" stroke="rgba(255,255,255,0.15)" stroke-width="4"/>
-    <line x1="0" y1="${ch}" x2="${w}" y2="${ch}" stroke="rgba(255,255,255,0.15)" stroke-width="4"/>
-  `;
+  const rects = cells.map(c => {
+    const cx = c.x + cw/2;
+    const cy = c.y + ch/2;
+    return `
+      <rect x="${c.x + gap/2}" y="${c.y + gap/2}" width="${cw - gap}" height="${ch - gap}" rx="16" fill="${c.bg}"/>
+      ${iconSVG(c.icon, cx, cy - 130)}
+      <text x="${cx}" y="${cy + 80}" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="88" font-weight="bold" fill="white" letter-spacing="3">${c.en}</text>
+      <text x="${cx}" y="${cy + 175}" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="64" fill="rgba(255,255,255,0.75)">${c.th}</text>
+    `;
+  }).join("");
 
-  return `<svg width="${w}" height="${h}" xmlns="http://www.w3.org/2000/svg">${rects}${lines}</svg>`;
+  return `<svg width="${w}" height="${h}" xmlns="http://www.w3.org/2000/svg">
+    <rect width="${w}" height="${h}" fill="#1a1a2e"/>
+    ${rects}
+  </svg>`;
 }
 
 module.exports = async (req, res) => {
@@ -39,7 +67,7 @@ module.exports = async (req, res) => {
   if (req.query.key !== "setup2026") return res.status(403).send("Add ?key=setup2026");
 
   try {
-    // 1. Delete existing rich menus
+    // 1. Delete ALL existing rich menus
     const listRes = await fetch(LINE_API + "/richmenu/list", {
       headers: { Authorization: "Bearer " + TOKEN },
     });
@@ -52,13 +80,13 @@ module.exports = async (req, res) => {
       }
     }
 
-    // 2. Create rich menu
+    // 2. Create rich menu definition
     const cw = Math.floor(2500 / 3), ch = Math.floor(1686 / 2);
     const menuDef = {
       size: { width: 2500, height: 1686 },
       selected: true,
       name: "TP Thailand Main Menu",
-      chatBarText: "📋 เมนู / Menu",
+      chatBarText: "Menu / เมนู",
       areas: [
         { bounds: { x: 0, y: 0, width: cw, height: ch }, action: { type: "message", text: "Quick Apply" } },
         { bounds: { x: cw, y: 0, width: cw, height: ch }, action: { type: "message", text: "Browse Jobs" } },
@@ -76,36 +104,32 @@ module.exports = async (req, res) => {
     });
     const created = await createRes.json();
     if (!created.richMenuId) return res.status(500).json({ error: "Create failed", detail: created });
-
     const id = created.richMenuId;
 
-    // 3. Generate image
+    // 3. Generate PNG from SVG
     const svg = createMenuSVG();
-    const png = await sharp(Buffer.from(svg)).png().toBuffer();
+    const png = await sharp(Buffer.from(svg)).png({ quality: 90 }).toBuffer();
 
     // 4. Upload image
-    const uploadRes = await fetch(LINE_DATA + "/richmenu/" + id + "/content", {
+    await fetch(LINE_DATA + "/richmenu/" + id + "/content", {
       method: "POST",
       headers: { Authorization: "Bearer " + TOKEN, "Content-Type": "image/png" },
       body: png,
     });
-    const uploaded = await uploadRes.json().catch(() => ({ ok: true }));
 
-    // 5. Set as default for all users
-    const setRes = await fetch(LINE_API + "/user/all/richmenu/" + id, {
+    // 5. Set as default
+    await fetch(LINE_API + "/user/all/richmenu/" + id, {
       method: "POST",
       headers: { Authorization: "Bearer " + TOKEN },
     });
-    const setDefault = await setRes.json().catch(() => ({ ok: true }));
 
     return res.status(200).json({
       success: true,
       richMenuId: id,
-      uploaded,
-      setDefault,
-      message: "Rich menu created and activated! Open LINE to see it.",
+      message: "Rich menu created! Open LINE to see it.",
+      imageSize: png.length + " bytes",
     });
   } catch (err) {
-    return res.status(500).json({ error: err.message, stack: err.stack });
+    return res.status(500).json({ error: err.message });
   }
 };
