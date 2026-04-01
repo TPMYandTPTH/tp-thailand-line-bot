@@ -61,9 +61,9 @@ function qr(opts) {
 
 const mainQR = { items: [
   { type: "action", action: { type: "message", label: "⚡ สมัครด่วน", text: "สมัครด่วน" } },
-  { type: "action", action: { type: "message", label: "🤖 AI Assessment", text: "AI Assessment" } },
+  { type: "action", action: { type: "message", label: "🤖 แบบทดสอบ AI", text: "AI Assessment" } },
   { type: "action", action: { type: "message", label: "💬 คุยกับรีครูทเตอร์", text: "คุยกับรีครูทเตอร์" } },
-  { type: "action", action: { type: "message", label: "ℹ️ ข้อมูลเพิ่มเติม", text: "ข้อมูลเพิ่มเติม" } },
+  { type: "action", action: { type: "message", label: "ℹ️ ข้อมูล / Info", text: "ข้อมูลเพิ่มเติม" } },
 ]};
 
 // ============================================================
@@ -134,7 +134,7 @@ function welcomeMsg() {
         type: "box", layout: "vertical", spacing: "sm",
         contents: [
           { type: "button", style: "primary", color: TP_PINK, action: { type: "message", label: "⚡ สมัครด่วน / Quick Apply", text: "สมัครด่วน" } },
-          { type: "button", style: "primary", color: TP_DARK, action: { type: "message", label: "🤖 AI Assessment", text: "AI Assessment" } },
+          { type: "button", style: "primary", color: TP_DARK, action: { type: "message", label: "🤖 แบบทดสอบ AI / Assessment", text: "AI Assessment" } },
           { type: "button", style: "secondary", action: { type: "message", label: "💬 รีครูทเตอร์ / Recruiter", text: "คุยกับรีครูทเตอร์" } },
           { type: "button", style: "secondary", action: { type: "message", label: "ℹ️ เพิ่มเติม / More Info", text: "ข้อมูลเพิ่มเติม" } },
         ],
