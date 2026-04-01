@@ -61,7 +61,7 @@ function qr(opts) {
 
 const mainQR = { items: [
   { type: "action", action: { type: "message", label: "⚡ สมัครด่วน", text: "สมัครด่วน" } },
-  { type: "action", action: { type: "message", label: "✅ เคยสมัครแล้ว", text: "เคยสมัครแล้ว" } },
+  { type: "action", action: { type: "message", label: "🤖 AI Assessment", text: "AI Assessment" } },
   { type: "action", action: { type: "message", label: "💬 คุยกับรีครูทเตอร์", text: "คุยกับรีครูทเตอร์" } },
   { type: "action", action: { type: "message", label: "ℹ️ ข้อมูลเพิ่มเติม", text: "ข้อมูลเพิ่มเติม" } },
 ]};
@@ -134,7 +134,7 @@ function welcomeMsg() {
         type: "box", layout: "vertical", spacing: "sm",
         contents: [
           { type: "button", style: "primary", color: TP_PINK, action: { type: "message", label: "⚡ สมัครด่วน / Quick Apply", text: "สมัครด่วน" } },
-          { type: "button", style: "primary", color: TP_DARK, action: { type: "message", label: "✅ เคยสมัครแล้ว / Applied", text: "เคยสมัครแล้ว" } },
+          { type: "button", style: "primary", color: TP_DARK, action: { type: "message", label: "🤖 AI Assessment", text: "AI Assessment" } },
           { type: "button", style: "secondary", action: { type: "message", label: "💬 รีครูทเตอร์ / Recruiter", text: "คุยกับรีครูทเตอร์" } },
           { type: "button", style: "secondary", action: { type: "message", label: "ℹ️ เพิ่มเติม / More Info", text: "ข้อมูลเพิ่มเติม" } },
         ],
@@ -147,28 +147,9 @@ function welcomeMsg() {
 function assessmentMsg() {
   const data = loadData();
   return {
-    type: "flex", altText: "Assessment",
-    contents: {
-      type: "bubble",
-      body: {
-        type: "box", layout: "vertical", spacing: "md",
-        contents: [
-          { type: "text", text: "📋 แบบทดสอบภาษา / Assessment", weight: "bold", size: "lg", color: TP_DARK },
-          { type: "text", text: "ยินดีต้อนรับกลับ! Welcome back! 🎉", size: "sm", color: "#666", wrap: true },
-          { type: "separator", margin: "md" },
-          { type: "text", text: "กรุณาทำแบบทดสอบ\nPlease complete the assessment.", size: "sm", color: "#666", wrap: true },
-          { type: "text", text: "💻 แนะนำทำบน PC / Best on PC", size: "xs", color: TP_PINK, margin: "md" },
-        ],
-      },
-      footer: {
-        type: "box", layout: "vertical", spacing: "sm",
-        contents: [
-          { type: "button", style: "primary", color: TP_PINK, action: { type: "uri", label: "🚀 เริ่ม / Start", uri: data.assessment_url } },
-          { type: "button", style: "secondary", action: { type: "message", label: "📋 คัดลอกลิงก์ / Copy", text: "คัดลอกลิงก์" } },
-          { type: "button", style: "secondary", action: { type: "message", label: "🏠 เมนู / Menu", text: "สวัสดี" } },
-        ],
-      },
-    },
+    type: "text",
+    text: "🤖 AI Assessment\nแบบทดสอบภาษา / Language Assessment\n\n💻 แนะนำทำบน PC / Best on PC\n\nกดลิงก์ด้านล่างหรือคัดลอกไปเปิดบน PC:\nClick the link or copy to open on PC:\n\n" + data.assessment_url + "\n\n👆 กดค้างเพื่อคัดลอก / Long press to copy\n\nพิมพ์ 'สวัสดี' เพื่อกลับเมนู",
+    quickReply: mainQR,
   };
 }
 
@@ -183,30 +164,8 @@ function recruiterMsg() {
 
 function infoMsg() {
   return {
-    type: "flex", altText: "More Info",
-    contents: {
-      type: "bubble",
-      body: {
-        type: "box", layout: "vertical", spacing: "md",
-        contents: [
-          { type: "text", text: "ℹ️ ข้อมูลเพิ่มเติม / More Info", weight: "bold", size: "lg", color: TP_DARK },
-          { type: "separator" },
-          { type: "text", text: "❓ TP = ผู้นำระดับโลก Digital Business Services\n500,000+ พนักงาน 100+ ประเทศ", size: "sm", color: "#666", wrap: true },
-          { type: "separator" },
-          { type: "text", text: "🎓 ไม่ต้องมีประสบการณ์ มีฝึกอบรมให้\nNo experience needed, full training", size: "sm", color: "#666", wrap: true },
-          { type: "separator" },
-          { type: "text", text: "📍 กรุงเทพฯ (ใกล้ BTS, มีที่จอดรถ)\nBangkok (near BTS, parking)", size: "sm", color: "#666", wrap: true },
-          { type: "separator" },
-          { type: "text", text: "🎁 สวัสดิการ / Benefits:\n💰เงินเดือนดี 🏥ประกัน 🎯โบนัส\n📚ฝึกอบรม 📈เติบโต 🌍สากล", size: "sm", color: "#666", wrap: true },
-        ],
-      },
-      footer: {
-        type: "box", layout: "vertical",
-        contents: [
-          { type: "button", style: "primary", color: TP_PINK, action: { type: "message", label: "⚡ สมัครด่วน / Quick Apply", text: "สมัครด่วน" } },
-        ],
-      },
-    },
+    type: "text",
+    text: "ℹ️ ข้อมูลเพิ่มเติม / More Info\n\n❓ TP คืออะไร?\nผู้นำระดับโลก Digital Business Services\nพนักงาน 500,000+ คน ใน 100+ ประเทศ\n\n🎓 ไม่ต้องมีประสบการณ์ มีฝึกอบรมให้\n\n📍 กรุงเทพฯ (ใกล้ BTS, มีที่จอดรถ)\n\n🎁 สวัสดิการ:\n💰 เงินเดือนแข่งขันได้\n🏥 ประกันกลุ่ม\n🎯 โบนัสประจำปี\n📚 ฝึกอบรมฟรี\n📈 โอกาสเติบโต\n🌍 สภาพแวดล้อมสากล\n\nพิมพ์ 'สวัสดี' เพื่อดูเมนู",
     quickReply: mainQR,
   };
 }
@@ -225,7 +184,7 @@ function isGreeting(msg) {
 
 function isMenuCmd(msg) {
   return isGreeting(msg) || msg.includes("สมัครด่วน") || msg.includes("quick apply") ||
-    msg.includes("เคยสมัคร") || msg.includes("already") || msg.includes("คุยกับ") ||
+    msg.includes("เคยสมัคร") || msg.includes("already") || msg.includes("assessment") || msg.includes("คุยกับ") ||
     msg.includes("recruiter") || msg.includes("ข้อมูล") || msg.includes("info") ||
     msg.includes("cancel") || msg.includes("ยกเลิก");
 }
@@ -293,7 +252,7 @@ async function handle(uid, text) {
     return [{ type:"text", text:"⚡ เริ่มสมัครด่วน!\n📝 13 คำถาม ~2 นาที\n13 questions ~2 min\n\nพิมพ์ 'cancel' เพื่อยกเลิก" }, qMsg(1)];
   }
 
-  if (msg.includes("เคยสมัคร") || msg.includes("already")) return [assessmentMsg()];
+  if (msg.includes("เคยสมัคร") || msg.includes("already") || msg.includes("assessment")) return [assessmentMsg()];
   if (msg.includes("คัดลอกลิงก์") || msg.includes("copy")) return [copyLinkMsg()];
 
   if (msg.includes("คุยกับ") || msg.includes("recruiter") || msg.includes("รีครูท")) {
